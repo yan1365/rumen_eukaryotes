@@ -10,6 +10,8 @@ from pathlib import Path
 import os
 import glob
 from Bio import SeqIO
+import numpy as np
+import pandas as pd
 
 # preprocessing
 def kmerfrequency(x):
@@ -117,101 +119,7 @@ def one_hot_encode_with_zero_handling(input_array):
     return np.array(output_list)
 
 
-# prediction
-class mydataset(Dataset):
-
-    def __init__(self, npz_path):
-        self.npz_path = npz_path
-        self.path = str(Path(self.npz_path))
-        self.forward = glob.glob(f"{self.path}/forward*")
-        self.forward.sort()
-        self.ids = glob.glob(f"{self.path}/ids*")
-        self.ids.sort()
-        self.kmerfre = glob.glob(f"{self.path}/kmerfre*")
-        self.kmerfre.sort()
-        self.y = glob.glob(f"{self.path}/y*")
-        self.y.sort()
-        self.chunks = len(self.y)
-
-        
-    def __getitem__(self, index):
-        forward_npz = np.load(self.forward[index])
-        ids_npz = np.load(self.ids[index], allow_pickle=True)
-        kmerfre_npz = np.load(self.kmerfre[index])
-        y_npz = np.load(self.y[index])
-        
-        forward_list = []
-        ids_list = []
-        kmerfre_list = []
-        y_list = []
-        
-        for i in forward_npz.files:
-            forward_list.append(forward_npz[i])
-        for i in ids_npz.files:
-            ids_list.append(ids_npz[i])
-        for i in kmerfre_npz.files:
-            kmerfre_list.append(kmerfre_npz[i])
-        for i in y_npz.files:
-            y_list.append(y_npz[i])
-            
-        forward = np.vstack(forward_list)   
-        ids = list(np.concatenate(ids_list))
-        kmerfre = np.vstack(kmerfre_list)
-        y = np.vstack(y_list)   
-        
-        return forward, ids, kmerfre, y
-        
-    def __len__(self):
-        return self.chunks
-
-
-class mydataset_m2(Dataset):
-
-    def __init__(self, npz_path, index, BATCH):
-        self.npz_path = npz_path
-        self.index = index
-        self.BATCH = BATCH
-        self.path = str(Path(self.npz_path))
-        self.forward = f"{self.path}/forward_{self.index}.npz"
-        self.ids = f"{self.path}/ids_{self.index}.npz"
-        self.kmerfre = f"{self.path}/kmerfre_{self.index}.npz"
-        self.y = f"{self.path}/y_{self.index}.npz"
-        
-        # preprocess
-        forward_npz = np.load(self.forward)
-        ids_npz = np.load(self.ids, allow_pickle=True)
-        kmerfre_npz = np.load(self.kmerfre)
-        y_npz = np.load(self.y)
-        
-        forward_list = []
-        ids_list = []
-        kmerfre_list = []
-        y_list = []
-        
-        for i in forward_npz.files:
-            forward_list.append(forward_npz[i])
-        for i in ids_npz.files:
-            ids_list.append(ids_npz[i])
-        for i in kmerfre_npz.files:
-            kmerfre_list.append(kmerfre_npz[i])
-        for i in y_npz.files:
-            y_list.append(y_npz[i])
-            
-        self.forward = np.vstack(forward_list)   
-        self.ids = list(np.concatenate(ids_list))
-        self.kmerfre = np.vstack(kmerfre_list)
-        self.y = np.vstack(y_list)   
-
-        self.chunks = self.y.shape[0]//self.BATCH
-        
-        
-    def __getitem__(self, index):
-        return self.forward[self.BATCH*index:self.BATCH*(index+1),:,:] , self.ids[self.BATCH*index:self.BATCH*(index+1)], self.kmerfre[self.BATCH*index:self.BATCH*(index+1),:], self.y[self.BATCH*index:self.BATCH*(index+1),:]
-        
-    def __len__(self):
-        return self.chunks
-
-
+# model architecture
 class kmerfre(nn.Module):
     def __init__(self, BATCH):
         super().__init__()
