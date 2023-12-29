@@ -1,3 +1,5 @@
 .ipynb_checkpoints/
 .vscode/
 *.out
+*.Rproj
+visualization_and_stats/.Rproj.user/

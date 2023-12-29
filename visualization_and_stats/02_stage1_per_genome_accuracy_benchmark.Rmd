@@ -1,0 +1,96 @@
+---
+title: "02_stage1_per_genome_accuracy_benchmark"
+author: "Ming Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries
+```{r}
+library(tidyverse)
+library(ggpubr)
+```
+
+# Load data
+```{r}
+acc_per_genome_tiara <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_tiara.csv")
+acc_per_genome_eukrep <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_eukrep.csv")
+acc_per_genome_guteuk <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_guteuk.csv")
+```
+
+
+# plot v2 density plot
+
+## Tiara 
+```{r}
+plot_ready_density_tiara <- acc_per_genome_tiara %>% mutate(accuracy = accuracy*100) %>% 
+  #mutate(genome_origin = ifelse(genome_origin == "SAG", "protozoa", genome_origin)) %>% 
+  mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=93)", 
+        genome_origin == "protozoa" ~ "protozoa\n(n=3)",
+        genome_origin == "prokaryotes" ~ "prokaryotes\n(n=2995)",
+        genome_origin == "SAG" ~ "ciliate SAGs\n(n=13)"))
+ 
+  
+plot_ready_density_tiara %>%  ggplot(aes(x = accuracy)) + 
+  geom_histogram(bins = 15) + 
+  facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
+  theme_minimal() +
+  labs(x = "Accuracy (%)", y = "Number of genomes") +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(size=8)) +
+  theme(axis.title.y = element_text(size = 7))
+  
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_tiara.svg", width = 6, height = 1.5, units = "in")
+
+```
+
+## EukRep 
+```{r}
+plot_ready_density_eukrep <- acc_per_genome_eukrep %>% mutate(accuracy = accuracy*100) %>% 
+  #mutate(genome_origin = ifelse(genome_origin == "SAG", "protozoa", genome_origin)) %>% 
+  mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=93)", 
+        genome_origin == "protozoa" ~ "protozoa\n(n=3)",
+        genome_origin == "prokaryotes" ~ "prokaryotes\n(n=2995)",
+        genome_origin == "SAG" ~ "ciliate SAGs\n(n=13)"))
+ 
+  
+plot_ready_density_eukrep %>%  ggplot(aes(x = accuracy)) + 
+  geom_histogram(bins = 15) + 
+  facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
+  theme_minimal() +
+  labs(x = "Accuracy (%)", y = "Number of genomes") +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(size=8)) +
+  theme(axis.title.y = element_text(size = 7))
+  
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_eukrep.svg", width = 6, height = 1.5, units = "in")
+
+```
+
+## GutEuk 
+```{r}
+plot_ready_density_guteuk <- acc_per_genome_guteuk %>% mutate(accuracy = accuracy*100) %>% 
+  #mutate(genome_origin = ifelse(genome_origin == "SAG", "protozoa", genome_origin)) %>% 
+  mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=93)", 
+        genome_origin == "protozoa" ~ "protozoa\n(n=3)",
+        genome_origin == "prokaryotes" ~ "prokaryotes\n(n=2995)",
+        genome_origin == "SAG" ~ "ciliate SAGs\n(n=13)"))
+ 
+  
+plot_ready_density_guteuk %>%  ggplot(aes(x = accuracy)) + 
+  geom_histogram(bins = 15) + 
+  facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
+  theme_minimal() +
+  labs(x = "Accuracy (%)", y = "Number of genomes") +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(size=8)) +
+  theme(axis.title.y = element_text(size = 7))
+  
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_guteuk.svg", width = 6, height = 1.5, units = "in")
+
+```
+
+
