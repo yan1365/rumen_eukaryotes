@@ -2,32 +2,16 @@
 
 # Author: Ming Yan, The Ohio State University
 import os
+import time
 import shutil
 import utils
+import glob
 import argparse
 import logging
 import subprocess
+import multiprocessing
 from Bio import SeqIO
-import time
 from datetime import datetime
-
-
-# define functions args
-
-def dna2onehot(X):
-    forward = utils.one_hot_encode_with_zero_handling(X)
-    return forward
-    
-     
-def seq2kmerfrequency(X):
-    inputs_list = []
-
-    for f in range(len(X)):
-        kmerfre = utils.kmerfrequency(X[f,:])
-        inputs_list.append(kmerfre)
-
-    inputs_kmerfre = np.array(inputs_list).reshape(len(X), -1)
-    return inputs_kmerfre
 
 description = '''\
 GutEuk -- A deep-learning-based two-stage classifier to distinguish contigs/MAGs of prokaryotes, fungi or protozoa origin.
@@ -73,7 +57,7 @@ parser.add_argument(
 
 
 parser.add_argument(
-    "-t", "--threads", help="Number of threads used. The default is 1.", type=int, default=1, nargs=1
+    "-t", "--threads", help="Number of threads used. The default is 1.", type=int, default=1
 )
 
 print(parser.description)
@@ -112,7 +96,7 @@ def main():
     logging.info(f"{parser.description}")
     
 
-    # unzip if zipped
+    # unzip {input_fasta} if zipped
     if input_fasta.endswith(".gz"):
         copy = f"cp {input_fasta} {tmp_dir}"
         gunzip = f"gunzip {tmp_dir}/{fasta_filename}"
@@ -123,37 +107,22 @@ def main():
     else:
         copy = f"cp {input_fasta} {tmp_dir}"
 
+    
+    def preprocessing(input_fasta, tmp_dir, threads, min_length):
+        ## split fasta into multiple
+        utils.split_fasta_parallel(input_fasta, tmp_dir, threads)
+        
+        ## fasta to int-encoded
+        utils.fasta_int_encoded_parellel(tmp_dir, threads, min_length)
 
-    # data transformation
-    with open(f"{tmp_dir}/input_fasta.csv", "w") as handle:
-        records = SeqIO.parse(input_fasta, "fasta")
-        for record in records:
-            seqid = record.id
-            seq = record.seq
-            intencoded = utils.dna2int(seq)
-            if len(intencoded) < min_length:
-                continue
-            elif len(intencoded) <= 5000:
-                # zero-padding on the right to 5000 bp when seq length < 5000
-                for f in range(5000 - len(intencoded)):
-                    intencoded.append(0)
-                seq_origin[str(seqid)] = str(seqid)
-                handle.write(f"{seqid}," +  ",".join([str(f) for f in intencoded]) + "\n")
-            
-            else:
-                # if seq length > 5000, split it into fragments of 5000 bp and give prediction to each fragment 
-                fragments =  len(intencoded) // 5000  
-                if fragments == 1:
-                    intencoded = intencoded[:5000]
-                    seq_origin[str(seqid)] = str(seqid)
-                    handle.write(f"{seqid}," +  ",".join([str(f) for f in intencoded]) + "\n")
-                
-                else:
-                    for f in range(fragments):
-                        intencoded_fragment = intencoded[5000*f:5000*(f+1)]
-                        seqid_new = f"{str(seqid)}_{str(f+1)}"
-                        seq_origin[str(seqid_new)] = str(seqid)
-                        handle.write(f"{seqid_new}," +  ",".join([str(f) for f in intencoded_fragment]) + "\n")
+        ## convert int-encoded csv to kmerfre array and onehot-encoded array
+        ## the resultant arrays could be used for prediction
+        utils.save_npz_parellel(tmp_dir, threads)
+
+    preprocessing(input_fasta, tmp_dir, threads, min_length)
+        
+        
+
 
 
 

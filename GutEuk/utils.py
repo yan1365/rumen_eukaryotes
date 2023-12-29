@@ -12,6 +12,7 @@ import glob
 from Bio import SeqIO
 import numpy as np
 import pandas as pd
+import multiprocessing
 
 # preprocessing
 def kmerfrequency(x):
@@ -117,6 +118,139 @@ def one_hot_encode_with_zero_handling(input_array):
         output_list.append(one_hot_encoded)
 
     return np.array(output_list)
+
+def dna2onehot(X):
+    forward = one_hot_encode_with_zero_handling(X)
+    return forward
+    
+     
+def seq2kmerfrequency(X):
+    inputs_list = []
+
+    for f in range(len(X)):
+        kmerfre = kmerfrequency(X[f,:])
+        inputs_list.append(kmerfre)
+
+    inputs_kmerfre = np.array(inputs_list).reshape(len(X), -1)
+    return inputs_kmerfre
+
+
+def chop_sequence(seq, fragment_size = 5000, sliding_window = 5000):
+    """Chop a sequence into fragments of equal size"""
+    return  [seq[i:i+fragment_size] for i in range(0, len(seq), sliding_window)]
+    
+
+def split_fasta(input_fasta, seqlist, tmp_dir, index):
+    """split sequences of a fasta file into files of similar sequence count"""
+    
+    with open(f"{tmp_dir}/input_fasta_int_encoded_{index}.fasta", "w") as outfile:
+        records = SeqIO.parse(input_fasta, "fasta")
+        for record in records:
+            if str(record.id) in seqlist:
+                SeqIO.write(record, outfile, "fasta")
+
+
+def split_fasta_wrapper(args):
+    split_fasta(*args)
+
+
+def split_fasta_parallel(input_fasta, tmp_dir, threads):
+    seqlist_to_assign = []
+    total_seqs = []
+    for f in range(threads):
+        seqlist_to_assign.append([])
+
+    records = SeqIO.parse(input_fasta, "fasta")
+    for record in records:
+        total_seqs.append(str(record.id))
+
+    # assign each sequence in total_seqs to each thread
+    for f in range(len(total_seqs)):
+        thread = f % threads
+        seqlist_to_assign[thread].append(total_seqs[f])   
+
+    arg_list = [[input_fasta, seqlist_to_assign[f], tmp_dir, str(f+1).zfill(2)] for f in range(threads)]
+   
+    with multiprocessing.Pool(processes=threads) as pool:
+        pool.map(split_fasta_wrapper, arg_list)
+
+## fasta to int-encoded
+def fasta_int_encoded(input_fasta_splited, tmp_dir, min_length):
+    seq_origin = {}
+    index = input_fasta_splited.split(".fasta")[0].split("_")[-1]
+    with open(f"{tmp_dir}/input_fasta_int_encoded_{index}.csv", "w") as handle:
+        records = SeqIO.parse(f"{tmp_dir}/{input_fasta_splited}", "fasta")
+        for record in records:
+            seqid = record.id
+            seq = record.seq
+            intencoded = dna2int(seq)
+            if len(intencoded) < min_length:
+                continue
+            elif len(intencoded) <= 5000:
+                # zero-padding on the right to 5000 bp when seq length < 5000
+                for f in range(5000 - len(intencoded)):
+                    intencoded.append(0)
+                seq_origin[str(seqid)] = str(seqid)
+                handle.write(f"{seqid}," +  ",".join([str(f) for f in intencoded]) + "\n")
+            
+            else:
+                # if seq length > 5000, split it into fragments of 5000 bp and give prediction to each fragment 
+                fragments =  len(intencoded) // 5000  
+                if fragments == 1:
+                    intencoded = intencoded[:5000]
+                    seq_origin[str(seqid)] = str(seqid)
+                    handle.write(f"{seqid}," +  ",".join([str(f) for f in intencoded]) + "\n")
+                
+                else:
+                    for f in range(fragments):
+                        intencoded_fragment = intencoded[5000*f:5000*(f+1)]
+                        seqid_new = f"{str(seqid)}_{str(f+1)}"
+                        seq_origin[str(seqid_new)] = str(seqid)
+                        handle.write(f"{seqid_new}," +  ",".join([str(f) for f in intencoded_fragment]) + "\n")
+
+            seq_origin_df = pd.DataFrame.from_dict(seq_origin, orient = "index").reset_index()
+            seq_origin_df.rename(columns = {"index": "seq", 0:'origin'}, inplace = True)
+            seq_origin_df.to_csv(f"{tmp_dir}/seqorigin_{index}.csv", index = None)
+
+def fasta_int_encoded_wrapper(args):
+    fasta_int_encoded(*args)
+
+def fasta_int_encoded_parellel(tmp_dir, threads, min_length):        
+    int_encoded_fasta = glob.glob(f"{tmp_dir}/input_fasta_int_encoded*.fasta")
+    if threads == 1:
+        fasta_filename_list = os.path.basename(int_encoded_fasta)
+    else:
+        fasta_filename_list = [os.path.basename(f) for f in int_encoded_fasta]
+
+    args_list = [[fasta_filename_list[f], tmp_dir, min_length] for f in range(len(fasta_filename_list))]
+    with multiprocessing.Pool(processes=threads) as pool:
+        pool.map(fasta_int_encoded_wrapper, args_list)
+
+# int-encoded to npz
+def int_encoded_to_array(int_encoded_csv, tmp_dir):  
+    # convert int-encoded csv to kmerfre array and onehot-encoded array
+    # the resultant arrays could be used for prediction
+    df = pd.read_csv(int_encoded_csv, header = None)
+    csv_filename = os.path.basename(int_encoded_csv)
+    index = csv_filename.split(".csv")[0].split("_")[-1]
+    ids = np.array(df.iloc[:,0])
+    df = df.iloc[:,1:]
+    x = np.array(df.iloc[:,:-1])
+    dna_forward = dna2onehot(x)
+    kmerfre = seq2kmerfrequency(x)
+
+    np.savez(f"{tmp_dir}/ids_{index}.npz", *ids)    
+    np.savez(f"{tmp_dir}/kmerfre_{index}.npz", *kmerfre)
+    np.savez(f"{tmp_dir}/forward_{index}.npz", *dna_forward)
+
+def int_encoded_to_array_wrapper(args):
+    int_encoded_to_array(*args)
+
+def save_npz_parellel(tmp_dir, threads):        
+    int_encoded_fasta = glob.glob(f"{tmp_dir}/input_fasta_int_encoded*.csv")
+    args_list = [[int_encoded_fasta[f], tmp_dir] for f in range(len(int_encoded_fasta))]
+    with multiprocessing.Pool(processes=threads) as pool:
+        pool.map(int_encoded_to_array_wrapper, args_list)
 
 
 # model architecture
