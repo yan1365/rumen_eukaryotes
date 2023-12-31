@@ -6,12 +6,17 @@ import time
 import shutil
 import utils
 import glob
+import torch
 import argparse
 import logging
 import subprocess
 import multiprocessing
+import numpy as np
+import pandas as pd
 from Bio import SeqIO
+from pathlib import Path
 from datetime import datetime
+from torch.utils.data import DataLoader
 
 description = '''\
 GutEuk -- A deep-learning-based two-stage classifier to distinguish contigs/MAGs of prokaryotes, fungi or protozoa origin.
@@ -72,6 +77,8 @@ def main():
     fasta_filename = os.path.basename(args.input)
     output_dir = os.path.normpath(args.output_dir)
     min_length = args.min_len
+    if min_length > 5000:
+        min_length = 5000
     threads = args.threads
     tmp_dir = os.path.normpath(f"{output_dir}/tmp")
 
@@ -107,7 +114,7 @@ def main():
     else:
         copy = f"cp {input_fasta} {tmp_dir}"
 
-    
+    # preprocessing
     def preprocessing(input_fasta, tmp_dir, threads, min_length):
         ## split fasta into multiple
         utils.split_fasta_parallel(input_fasta, tmp_dir, threads)
@@ -119,22 +126,16 @@ def main():
         ## the resultant arrays could be used for prediction
         utils.save_npz_parellel(tmp_dir, threads)
 
+
+    def prediction(threads):
+        args_list = [[tmp_dir, str(f+1).zfill(2)] for f in range(threads)]
+        with multiprocessing.Pool(processes=threads) as pool:
+            pool.map(utils.predict_wrapper, args_list)
+
+
     preprocessing(input_fasta, tmp_dir, threads, min_length)
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
+    prediction(threads)
+  
     # # clearn up, remove tmp dir
     # try:
     #     shutil.rmtree(f"{tmp_dir}")

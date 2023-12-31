@@ -14,6 +14,8 @@ import numpy as np
 import pandas as pd
 import multiprocessing
 
+# Author: Ming Yan, The Ohio State University
+
 # preprocessing
 def kmerfrequency(x):
     # return dict of 4,5,6-mer frequency
@@ -235,7 +237,7 @@ def int_encoded_to_array(int_encoded_csv, tmp_dir):
     index = csv_filename.split(".csv")[0].split("_")[-1]
     ids = np.array(df.iloc[:,0])
     df = df.iloc[:,1:]
-    x = np.array(df.iloc[:,:-1])
+    x = np.array(df)
     dna_forward = dna2onehot(x)
     kmerfre = seq2kmerfrequency(x)
 
@@ -252,12 +254,36 @@ def save_npz_parellel(tmp_dir, threads):
     with multiprocessing.Pool(processes=threads) as pool:
         pool.map(int_encoded_to_array_wrapper, args_list)
 
+# load data
+def load_npz(tmp_dir, index):
+
+    forward_npz = np.load(f"{tmp_dir}/forward_{index}.npz")
+    ids_npz = np.load(f"{tmp_dir}/ids_{index}.npz", allow_pickle=True)
+    kmerfre_npz = np.load(f"{tmp_dir}/kmerfre_{index}.npz")
+    
+    forward_list = []
+    ids_list = []
+    kmerfre_list = []
+    
+    for i in forward_npz.files:
+        forward_list.append(forward_npz[i])
+    for i in ids_npz.files:
+        ids_list.append(ids_npz[i])
+    for i in kmerfre_npz.files:
+        kmerfre_list.append(kmerfre_npz[i])
+        
+
+    forward_torch = torch.tensor(np.stack(forward_list, axis = 0)).to(torch.float32)   
+    ids_np = np.stack(ids_list, axis = 0)
+    kmerfre_torch = torch.tensor(np.stack(kmerfre_list, axis = 0)).to(torch.float32)
+
+    return forward_torch, kmerfre_torch, ids_np
 
 # model architecture
-class kmerfre(nn.Module):
-    def __init__(self, BATCH):
+class model_kmerfre(nn.Module):
+    def __init__(self):
         super().__init__()
-        self.BATCH = BATCH
+        self.BATCH = 1
         
 
         self.fc = nn.Sequential(
@@ -275,14 +301,13 @@ class kmerfre(nn.Module):
         
 
     def forward(self, kmerfre):
-        x = self.fc(kmerfre.view(self.BATCH,-1))
+        x = self.fc(kmerfre.view(1,-1))
         return x
 
-
-class cnn(nn.Module):
-    def __init__(self, BATCH):
+class model_cnn(nn.Module):
+    def __init__(self):
         super().__init__()
-        self.BATCH = BATCH
+        self.BATCH = 1
         
         self.conv = nn.Sequential(
             nn.Conv2d(1, 32, (6, 4)), #tune
@@ -317,4 +342,100 @@ class cnn(nn.Module):
         x = self.fc(cnn_forward)
         return x
 
+# predict stage1 
+def predict_stage1(forward_torch, kmerfre_torch, ids_np):
+
+    prediction = []
+    ID_list = []
+
+    kmerfre = "model/stage1-kmerfre.pth"
+    cnn = "model/stage1-cnn.pth"
+    model_path_kmerfre = Path(kmerfre)
+    model_path_cnn = Path(cnn)
+    kmerfre = model_kmerfre()
+    cnn = model_cnn()
+    checkpoint_kmerfre = torch.load(model_path_kmerfre)
+    checkpoint_cnn = torch.load(model_path_cnn)
+    kmerfre.load_state_dict(checkpoint_kmerfre['model'])
+    cnn.load_state_dict(checkpoint_cnn['model'])
+
+    for f in range(len(ids_np)):
+        forward_input = forward_torch[f].view(1, 1, 5000, 4)
+        kmerfre_input = kmerfre_torch[f]
+        ID = ids_np[f]
+        
+        y_ce_cnn = cnn(forward_input) 
+        y_pred_cnn = torch.softmax(y_ce_cnn, dim=1)
+        prediction_cnn = y_pred_cnn.detach().numpy()[0]
+        
+        y_ce_kmerfre = kmerfre(kmerfre_input) 
+        y_pred_kmerfre = torch.softmax(y_ce_kmerfre, dim=1)
+        prediction_kmerfre = y_pred_kmerfre.detach().numpy()[0]
+
+        ID_list.append(ID)
+        predict = (prediction_cnn + prediction_kmerfre)/2
+        predict = predict.argmax().item()
+        
+        if predict == 0:
+            prediction.append("prokaryotes")
+        else:
+            prediction.append("eukaryotes")
     
+    stage1_res = pd.DataFrame.from_dict({"seq":ID_list, "predict":prediction})
+    return stage1_res  
+
+
+# predict stage2
+def predict_stage2(forward_np, kmerfre_np, ids_np, index_proceed_stage2):
+
+    prediction = []
+    ID_list = []
+
+    kmerfre = "model/stage2-kmerfre.pth"
+    cnn = "model/stage2-cnn.pth"
+    model_path_kmerfre = Path(kmerfre)
+    model_path_cnn = Path(cnn)
+    kmerfre = model_kmerfre()
+    cnn = model_cnn()
+    checkpoint_kmerfre = torch.load(model_path_kmerfre)
+    checkpoint_cnn = torch.load(model_path_cnn)
+    kmerfre.load_state_dict(checkpoint_kmerfre['model'])
+    cnn.load_state_dict(checkpoint_cnn['model'])
+
+    for f in index_proceed_stage2:
+        forward_input = forward_np[f].view(1, 1, 5000, 4)
+        kmerfre_input = kmerfre_np[f]
+        ID = ids_np[f]
+        
+        # 1. Forward pass
+        y_ce_cnn = cnn(forward_input) 
+        y_pred_cnn = torch.softmax(y_ce_cnn, dim=1)
+        prediction_cnn = y_pred_cnn.detach().numpy()[0]
+        
+        y_ce_kmerfre = kmerfre(kmerfre_input) 
+        y_pred_kmerfre = torch.softmax(y_ce_kmerfre, dim=1)
+        prediction_kmerfre = y_pred_kmerfre.detach().numpy()[0]
+
+        ID_list.append(ID)
+        predict = (prediction_cnn + prediction_kmerfre)/2
+        predict = predict.argmax().item()
+        
+        if predict == 0:
+            prediction.append("protozoa")
+        else:
+            prediction.append("fungi")
+    
+    stage2_res = pd.DataFrame.from_dict({"seq":ID_list, "predict":prediction})
+    return stage2_res  
+
+def predict(tmp_dir, index):
+    forward_np, kmerfre_np, ids_np =  load_npz(tmp_dir, index)
+    stage1_res = predict_stage1(forward_np, kmerfre_np, ids_np)
+    index_proceed_stage2 = np.array(stage1_res.query('predict == "eukaryotes"').index)
+    stage2_res = predict_stage2(forward_np, kmerfre_np, ids_np, index_proceed_stage2)
+    stage1_res.to_csv(f"{tmp_dir}/input_fasta_{index}_stage1_out.csv", index = None)
+    stage2_res.to_csv(f"{tmp_dir}/input_fasta_{index}_stage2_out.csv", index = None)
+
+def predict_wrapper(args):
+    predict(*args)
+
