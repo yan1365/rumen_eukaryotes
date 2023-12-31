@@ -220,13 +220,15 @@ def fasta_int_encoded_wrapper(args):
 def fasta_int_encoded_parellel(tmp_dir, threads, min_length):        
     int_encoded_fasta = glob.glob(f"{tmp_dir}/input_fasta_int_encoded*.fasta")
     if threads == 1:
-        fasta_filename_list = os.path.basename(int_encoded_fasta)
+        fasta_filename = os.path.basename(int_encoded_fasta[0])
+        fasta_int_encoded(fasta_filename, tmp_dir, min_length)
+
     else:
         fasta_filename_list = [os.path.basename(f) for f in int_encoded_fasta]
+        args_list = [[fasta_filename_list[f], tmp_dir, min_length] for f in range(len(fasta_filename_list))]
 
-    args_list = [[fasta_filename_list[f], tmp_dir, min_length] for f in range(len(fasta_filename_list))]
-    with multiprocessing.Pool(processes=threads) as pool:
-        pool.map(fasta_int_encoded_wrapper, args_list)
+        with multiprocessing.Pool(processes=threads) as pool:
+            pool.map(fasta_int_encoded_wrapper, args_list)
 
 # int-encoded to npz
 def int_encoded_to_array(int_encoded_csv, tmp_dir):  

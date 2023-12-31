@@ -91,7 +91,18 @@ def main():
     ### the majority rule is used for the final assignment
     seq_origin = {}  
     seq_assignment = {} 
+
+    # create a log file
+    logging.basicConfig(filename=os.path.join(output_dir, "log.txt"), level=logging.INFO, format='%(message)s')
+    logging.info(f"{parser.description}")
     
+    if os.path.exists(output_dir):
+        pass
+    else:
+        os.mkdir(output_dir)
+        logging.info(f"Output dir not exist, creating one.")
+
+
     # create tmp dir
     try:
         os.mkdir(f'{tmp_dir}')
