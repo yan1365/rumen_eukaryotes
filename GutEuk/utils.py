@@ -360,28 +360,32 @@ def predict_stage1(forward_torch, kmerfre_torch, ids_np):
     checkpoint_cnn = torch.load(model_path_cnn)
     kmerfre.load_state_dict(checkpoint_kmerfre['model'])
     cnn.load_state_dict(checkpoint_cnn['model'])
+    kmerfre.eval()
+    cnn.eval()
 
-    for f in range(len(ids_np)):
-        forward_input = forward_torch[f].view(1, 1, 5000, 4)
-        kmerfre_input = kmerfre_torch[f]
-        ID = ids_np[f]
-        
-        y_ce_cnn = cnn(forward_input) 
-        y_pred_cnn = torch.softmax(y_ce_cnn, dim=1)
-        prediction_cnn = y_pred_cnn.detach().numpy()[0]
-        
-        y_ce_kmerfre = kmerfre(kmerfre_input) 
-        y_pred_kmerfre = torch.softmax(y_ce_kmerfre, dim=1)
-        prediction_kmerfre = y_pred_kmerfre.detach().numpy()[0]
+    with torch.inference_mode():
 
-        ID_list.append(ID)
-        predict = (prediction_cnn + prediction_kmerfre)/2
-        predict = predict.argmax().item()
-        
-        if predict == 0:
-            prediction.append("prokaryotes")
-        else:
-            prediction.append("eukaryotes")
+        for f in range(len(ids_np)):
+            forward_input = forward_torch[f].view(1, 1, 5000, 4)
+            kmerfre_input = kmerfre_torch[f]
+            ID = ids_np[f]
+            
+            y_ce_cnn = cnn(forward_input) 
+            y_pred_cnn = torch.softmax(y_ce_cnn, dim=1)
+            prediction_cnn = y_pred_cnn.detach().numpy()[0]
+            
+            y_ce_kmerfre = kmerfre(kmerfre_input) 
+            y_pred_kmerfre = torch.softmax(y_ce_kmerfre, dim=1)
+            prediction_kmerfre = y_pred_kmerfre.detach().numpy()[0]
+
+            ID_list.append(ID)
+            predict = (prediction_cnn + prediction_kmerfre)/2
+            predict = predict.argmax().item()
+            
+            if predict == 0:
+                prediction.append("prokaryotes")
+            else:
+                prediction.append("eukaryotes")
     
     stage1_res = pd.DataFrame.from_dict({"seq":ID_list, "predict":prediction})
     return stage1_res  
@@ -403,29 +407,33 @@ def predict_stage2(forward_np, kmerfre_np, ids_np, index_proceed_stage2):
     checkpoint_cnn = torch.load(model_path_cnn)
     kmerfre.load_state_dict(checkpoint_kmerfre['model'])
     cnn.load_state_dict(checkpoint_cnn['model'])
+    kmerfre.eval()
+    cnn.eval()
 
-    for f in index_proceed_stage2:
-        forward_input = forward_np[f].view(1, 1, 5000, 4)
-        kmerfre_input = kmerfre_np[f]
-        ID = ids_np[f]
-        
-        # 1. Forward pass
-        y_ce_cnn = cnn(forward_input) 
-        y_pred_cnn = torch.softmax(y_ce_cnn, dim=1)
-        prediction_cnn = y_pred_cnn.detach().numpy()[0]
-        
-        y_ce_kmerfre = kmerfre(kmerfre_input) 
-        y_pred_kmerfre = torch.softmax(y_ce_kmerfre, dim=1)
-        prediction_kmerfre = y_pred_kmerfre.detach().numpy()[0]
+    with torch.inference_mode():
 
-        ID_list.append(ID)
-        predict = (prediction_cnn + prediction_kmerfre)/2
-        predict = predict.argmax().item()
-        
-        if predict == 0:
-            prediction.append("protozoa")
-        else:
-            prediction.append("fungi")
+        for f in index_proceed_stage2:
+            forward_input = forward_np[f].view(1, 1, 5000, 4)
+            kmerfre_input = kmerfre_np[f]
+            ID = ids_np[f]
+            
+            # 1. Forward pass
+            y_ce_cnn = cnn(forward_input) 
+            y_pred_cnn = torch.softmax(y_ce_cnn, dim=1)
+            prediction_cnn = y_pred_cnn.detach().numpy()[0]
+            
+            y_ce_kmerfre = kmerfre(kmerfre_input) 
+            y_pred_kmerfre = torch.softmax(y_ce_kmerfre, dim=1)
+            prediction_kmerfre = y_pred_kmerfre.detach().numpy()[0]
+
+            ID_list.append(ID)
+            predict = (prediction_cnn + prediction_kmerfre)/2
+            predict = predict.argmax().item()
+            
+            if predict == 0:
+                prediction.append("protozoa")
+            else:
+                prediction.append("fungi")
     
     stage2_res = pd.DataFrame.from_dict({"seq":ID_list, "predict":prediction})
     return stage2_res  
