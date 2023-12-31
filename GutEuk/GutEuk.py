@@ -29,7 +29,8 @@ In the second stage, the eukaryotic sequences are further identified as either f
 
 '''
 
-Usage = 'Usage: GutEuk -i <input_file> -o <output_dir> [options]/ GutEuk -h.'
+Usage = '''Usage: GutEuk -i <input_file> -o <output_dir> [options]/ GutEuk -h.
+To run GutEuk on a test dataset: GutEuk -i test/test.fa -o ./'''
 
 parser = argparse.ArgumentParser(description = description, usage = Usage)
 
@@ -65,7 +66,6 @@ parser.add_argument(
     "-t", "--threads", help="Number of threads used. The default is 1.", type=int, default=1
 )
 
-print(parser.description)
 args = parser.parse_args()
 
 def main():
@@ -106,10 +106,6 @@ def main():
         os.mkdir(f'{tmp_dir}')
     except FileExistsError:
         pass
-
-    # create a log file
-    logging.basicConfig(filename=os.path.join(output_dir, "log.txt"), level=logging.INFO, format='%(message)s')
-    logging.info(f"{parser.description}")
     
 
     # unzip {input_fasta} if zipped
@@ -136,14 +132,21 @@ def main():
         utils.save_npz_parellel(tmp_dir, threads)
 
 
-    def prediction(threads):
-        args_list = [[tmp_dir, str(f+1).zfill(2)] for f in range(threads)]
-        with multiprocessing.Pool(processes=threads) as pool:
-            pool.map(utils.predict_wrapper, args_list)
+    def prediction():
+        indexs = [f.split("forward_")[1].split(".npz")[0] for f in glob.glob(f"{tmp_dir}/forward*.npz")]
+        for index in indexs:
+            utils.predict(tmp_dir, index)
 
-
+    preprocessing_start = time.time()
     preprocessing(input_fasta, tmp_dir, threads, min_length)
-    prediction(threads)
+    preprocessing_end = time.time()
+    logging.info(f"Preprocessing finished in {preprocessing_end - preprocessing_start} secs")
+    
+
+    prediction_start = time.time()
+    prediction()
+    prediction_end = time.time()
+    logging.info(f"Prediction finished in {prediction_end - prediction_start} secs")
   
     # # clearn up, remove tmp dir
     # try:

@@ -431,9 +431,9 @@ def predict_stage2(forward_np, kmerfre_np, ids_np, index_proceed_stage2):
             predict = predict.argmax().item()
             
             if predict == 0:
-                prediction.append("protozoa")
-            else:
                 prediction.append("fungi")
+            else:
+                prediction.append("protozoa")
     
     stage2_res = pd.DataFrame.from_dict({"seq":ID_list, "predict":prediction})
     return stage2_res  
@@ -446,6 +446,4 @@ def predict(tmp_dir, index):
     stage1_res.to_csv(f"{tmp_dir}/input_fasta_{index}_stage1_out.csv", index = None)
     stage2_res.to_csv(f"{tmp_dir}/input_fasta_{index}_stage2_out.csv", index = None)
 
-def predict_wrapper(args):
-    predict(*args)
 
