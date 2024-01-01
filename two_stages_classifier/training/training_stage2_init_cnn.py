@@ -18,7 +18,7 @@ from utils import precision_recall
 
 
 # Setup path to save model state_dict
-path = "/fs/ess/PAS0439/MING/cilates_fungi_classifier/outputs/GutEuk_classifier/stage2/cnn_dropout0.5_wd0.001/"
+path = "/fs/ess/PAS0439/MING/cilates_fungi_classifier/outputs/GutEuk_classifier/stage2/cnn_v6_dropout0.5_wd0.001/"
 model_path = Path(path)
  
 if model_path.is_dir():
@@ -43,7 +43,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 
-model = utils.cnn(BATCH)
+model = utils.cnn_v6(BATCH)
 model.to(device)
 criterion  = nn.CrossEntropyLoss()
 optimizer = torch.optim.AdamW(model.parameters(), weight_decay=0.001, lr=0.00005) 

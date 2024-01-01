@@ -30,7 +30,7 @@ def resume(model, optimizer, filename):
     optimizer.load_state_dict(checkpoint['optimizer'])
 
 # Setup path to save model state_dict
-path = "/fs/ess/PAS0439/MING/cilates_fungi_classifier/outputs/GutEuk_classifier/stage2/cnn_v4_dropout0.5_wd0.001/"
+path = "/fs/ess/PAS0439/MING/cilates_fungi_classifier/outputs/GutEuk_classifier/stage2/cnn_v6_dropout0.5_wd0.001/"
 model_path = Path(path)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -52,10 +52,10 @@ old_val_loss = min_validation_loss
 
 # load model parameters and resume training
 # get number of epochs finished (last_finished_epoch) and get the latest model parameters 
-model = utils.cnn_v4(BATCH)
+model = utils.cnn_v6(BATCH)
 model.to(device)
 criterion  = nn.CrossEntropyLoss()
-optimizer = torch.optim.AdamW(model.parameters(), weight_decay=0.001, lr=0.00008) 
+optimizer = torch.optim.AdamW(model.parameters(), weight_decay=0.001, lr=0.00005) 
 
 pth = glob.glob(f"{str(model_path)}/epoch-*.pth")
 if len(pth) == 1:

@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --job-name=training_stage2_cnn_v4_dropout0.5_wd0.001_%j
-#SBATCH --output=training_stage2_cnn_v4_dropout0.5_wd0.001_%j.out
+#SBATCH --job-name=training_stage2_cnn_v6_dropout0.5_wd0.001_%j
+#SBATCH --output=training_stage2_cnn_v6_dropout0.5_wd0.001_%j.out
 # Walltime Limit: hh:mm:ss 
-#SBATCH --time=16:30:00
+#SBATCH --time=20:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=28 
 #SBATCH --mail-type=ALL
