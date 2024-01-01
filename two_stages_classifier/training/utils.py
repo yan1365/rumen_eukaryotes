@@ -473,6 +473,44 @@ class cnn_v5(nn.Module):
         x = self.fc(cnn_forward)
         return x
 
+class cnn_v6(nn.Module):
+    def __init__(self, BATCH):
+        super().__init__()
+        self.BATCH = BATCH
+        
+        self.conv = nn.Sequential(
+            nn.Conv2d(1, 32, (6, 4)), #tune
+            nn.ReLU(),
+            nn.Flatten(start_dim=2),
+            nn.Conv1d(32, 64, 3), 
+            nn.ReLU(),
+            nn.MaxPool1d(3),  # tune
+            nn.BatchNorm1d(64),
+            nn.Conv1d(64, 128, 3), # tune
+            nn.ReLU(),
+            nn.Conv1d(128, 256, 3), # tune
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.AdaptiveAvgPool1d(1),
+            nn.Flatten()
+        )
+        
+        self.fc = nn.Sequential(
+            nn.Linear(256, 64),    
+            nn.ReLU(),
+            nn.Dropout(p=0.5), 
+            nn.Linear(64, 8),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),
+            nn.Linear(8, 2)            
+        )
+        
+  
+
+    def forward(self, dna_forward):
+        cnn_forward = self.conv(dna_forward)        
+        x = self.fc(cnn_forward)
+        return x
 
 class ae(nn.Module):
     def __init__(self, BATCH):
