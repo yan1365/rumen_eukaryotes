@@ -445,5 +445,3 @@ def predict(tmp_dir, index):
     stage2_res = predict_stage2(forward_np, kmerfre_np, ids_np, index_proceed_stage2)
     stage1_res.to_csv(f"{tmp_dir}/input_fasta_{index}_stage1_out.csv", index = None)
     stage2_res.to_csv(f"{tmp_dir}/input_fasta_{index}_stage2_out.csv", index = None)
-
-

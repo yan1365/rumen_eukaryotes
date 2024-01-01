@@ -19,13 +19,13 @@ from datetime import datetime
 from torch.utils.data import DataLoader
 
 description = '''\
-GutEuk -- A deep-learning-based two-stage classifier to distinguish contigs/MAGs of prokaryotes, fungi or protozoa origin.
+GutEuk -- A deep-learning-based two-stage classifier to distinguish contigs/MAGs of prokaryotes, fungi or protozoa origins.
 
 Designed specifically for gut microbiome.
 
-In the first stage, the inputs are identified as either prokaryotes or eukaryotes origin (fungi or protozoa).
+In the first stage, the inputs are classified as either prokaryotes or eukaryotes origin (fungi or protozoa).
 
-In the second stage, the eukaryotic sequences are further identified as either fungi or protozoa.
+In the second stage, the eukaryotic sequences are further classified as either fungi or protozoa.
 
 '''
 
@@ -262,12 +262,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
