@@ -37,7 +37,7 @@ with torch.inference_mode():
         train = utils.mydataset_m2("/fs/scratch/PAS0439/Ming/databases/gut_eukaryotes_classifier/stage2/transformed_dataset/test", str(index).zfill(3), 1)   
         train_loader = DataLoader(dataset=train,
                       shuffle=False,
-                      num_workers=20)   
+                      num_workers=40)   
         for i, (forward, ID, kmerfre, y) in enumerate(train_loader):
             dna_forward = forward.view(1, 1, 5000, 4).to(torch.float32).to(device)
             # 1. Forward pass

@@ -41,7 +41,7 @@ with open(f"{model_path}/early_stopping_status.txt", "r") as handle:
 
 #hyper-parameter
 num_epochs = 10
-Patience = 5
+Patience = 10
 Min_delta = 0
 BATCH = 512
 early_stopper = utils.EarlyStopper(patience = Patience, min_delta = Min_delta, counter = counter, min_validation_loss = min_validation_loss)  # resume early-stopping status
@@ -55,7 +55,7 @@ old_val_loss = min_validation_loss
 model = utils.cnn_v6(BATCH)
 model.to(device)
 criterion  = nn.CrossEntropyLoss()
-optimizer = torch.optim.AdamW(model.parameters(), weight_decay=0.001, lr=0.00005) 
+optimizer = torch.optim.AdamW(model.parameters(), weight_decay=0.001, lr=0.00001) 
 
 pth = glob.glob(f"{str(model_path)}/epoch-*.pth")
 if len(pth) == 1:
