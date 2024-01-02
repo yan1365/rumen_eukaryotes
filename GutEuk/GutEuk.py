@@ -105,7 +105,7 @@ def main():
         os.mkdir(output_dir)
 
     # create a log file
-    logging.basicConfig(filename=os.path.join(output_dir, "log.txt"), level=logging.INFO, format='%(message)s')
+    logging.basicConfig(filename=os.path.join(output_dir, "GutEuk_log.txt"), level=logging.INFO, format='%(message)s')
     logging.info(f"{parser.description}")
     
     # create tmp dir

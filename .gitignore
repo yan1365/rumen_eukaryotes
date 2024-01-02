@@ -3,3 +3,4 @@
 *.out
 *.Rproj
 visualization_and_stats/.Rproj.user/
+.Rproj.user

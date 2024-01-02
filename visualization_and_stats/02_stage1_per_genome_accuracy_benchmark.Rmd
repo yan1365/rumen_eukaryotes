@@ -38,7 +38,7 @@ plot_ready_density_tiara %>%  ggplot(aes(x = accuracy)) +
   geom_histogram(bins = 15) + 
   facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
   theme_minimal() +
-  labs(x = "Accuracy (%)", y = "Number of genomes") +
+  labs(x = "Accuracy per genome - Tiara (%)", y = "Number of genomes") +
   theme(legend.position = "bottom") +
   theme(text = element_text(size=8)) +
   theme(axis.title.y = element_text(size = 7))
@@ -61,7 +61,7 @@ plot_ready_density_eukrep %>%  ggplot(aes(x = accuracy)) +
   geom_histogram(bins = 15) + 
   facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
   theme_minimal() +
-  labs(x = "Accuracy (%)", y = "Number of genomes") +
+  labs(x = "Accuracy per genome - EukRep (%)", y = "Number of genomes") +
   theme(legend.position = "bottom") +
   theme(text = element_text(size=8)) +
   theme(axis.title.y = element_text(size = 7))
@@ -84,7 +84,7 @@ plot_ready_density_guteuk %>%  ggplot(aes(x = accuracy)) +
   geom_histogram(bins = 15) + 
   facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
   theme_minimal() +
-  labs(x = "Accuracy (%)", y = "Number of genomes") +
+  labs(x = "Accuracy per genome - GutEuk (%)", y = "Number of genomes") +
   theme(legend.position = "bottom") +
   theme(text = element_text(size=8)) +
   theme(axis.title.y = element_text(size = 7))
