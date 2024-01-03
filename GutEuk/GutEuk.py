@@ -206,8 +206,7 @@ def main():
         final_output = pd.merge(stage1_final_prediction_df, stage2_final_prediction_df, left_index = True, right_index = True, how="left")
         final_output.reset_index(names = "sequence_id", inplace = True)
         final_output.stage2_prediction = final_output.stage2_prediction.fillna("prokaryotes")
-        final_output.to_csv(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_output.csv", index = None)
-
+        final_output.loc[list(final_output.query("stage1_prediction == 'prokaryotes'").index), "stage2_prediction"] = "prokaryotes"
         return final_output
 
     
