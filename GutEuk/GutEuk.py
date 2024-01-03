@@ -87,7 +87,7 @@ def main():
     if min_length > 5000:
         min_length = 5000
     threads = args.threads
-    tmp_dir = os.path.normpath(f"{output_dir}/tmp")
+    tmp_dir = os.path.normpath(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_tmp")
 
     ## mise
     start_time = str(datetime.now()).split('.')[0]
@@ -105,7 +105,7 @@ def main():
         os.mkdir(output_dir)
 
     # create a log file
-    logging.basicConfig(filename=os.path.join(output_dir, "GutEuk_log.txt"), level=logging.INFO, format='%(message)s')
+    logging.basicConfig(filename=os.path.join(output_dir, f"{fasta_filename.split('.')[0]}_GutEuk_log.txt"), level=logging.INFO, format='%(message)s')
     logging.info(f"{parser.description}")
     
     # create tmp dir
