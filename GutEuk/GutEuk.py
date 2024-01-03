@@ -207,6 +207,7 @@ def main():
         final_output.reset_index(names = "sequence_id", inplace = True)
         final_output.stage2_prediction = final_output.stage2_prediction.fillna("prokaryotes")
         final_output.loc[list(final_output.query("stage1_prediction == 'prokaryotes'").index), "stage2_prediction"] = "prokaryotes"
+        final_output.loc[list(final_output.query("stage1_prediction == 'undetermined'").index), "stage2_prediction"] = "undetermined"
         return final_output
 
     
