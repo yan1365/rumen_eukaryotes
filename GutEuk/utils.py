@@ -117,7 +117,6 @@ def one_hot_encode_with_zero_handling(input_array):
             if value != 0:
                 one_hot_encoded[j, value - 1] = 1
 
-        
         output_list.append(one_hot_encoded)
 
     return np.array(output_list)
