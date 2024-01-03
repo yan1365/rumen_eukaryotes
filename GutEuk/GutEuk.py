@@ -104,7 +104,9 @@ def main():
     else:
         os.mkdir(output_dir)
 
-    # create a log file
+    # create a log file, overwrite if existed
+    if os.path.exists(f"{fasta_filename.split('.')[0]}_GutEuk_log.txt"):
+        os.remove(f"{fasta_filename.split('.')[0]}_GutEuk_log.txt")
     logging.basicConfig(filename=os.path.join(output_dir, f"{fasta_filename.split('.')[0]}_GutEuk_log.txt"), level=logging.INFO, format='%(message)s')
     logging.info(f"{parser.description}")
     
@@ -203,7 +205,7 @@ def main():
         stage2_final_prediction_df = pd.DataFrame.from_dict(stage2_final_prediction, orient = "index").rename(columns = {0:"stage2_prediction"})
         final_output = pd.merge(stage1_final_prediction_df, stage2_final_prediction_df, left_index = True, right_index = True, how="left")
         final_output.reset_index(names = "sequence_id", inplace = True)
-        final_output.to_csv(f"{output_dir}/{fasta_filename.split('.')[0]}_EukRep_output.csv", index = None)
+        final_output.to_csv(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_output.csv", index = None)
 
         return final_output
 
@@ -214,10 +216,10 @@ def main():
         protozoa = list(final_output.query('stage2_prediction == "protozoa"').sequence_id)
         fungi = list(final_output.query('stage2_prediction == "fungi"').sequence_id)
 
-        with open(f"{output_dir}/{fasta_filename.split('.')[0]}_EukRep_prokaryotes.fasta", "w") as prokaryotes_out:
-            with open(f"{output_dir}/{fasta_filename.split('.')[0]}_EukRep_eukaryotes.fasta", "w") as eukaryotes_out:
-                with open(f"{output_dir}/{fasta_filename.split('.')[0]}_EukRep_protozoa.fasta", "w") as protozoa_out:
-                    with open(f"{output_dir}/{fasta_filename.split('.')[0]}_EukRep_fungi.fasta", "w") as fungi_out:
+        with open(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_prokaryotes.fasta", "w") as prokaryotes_out:
+            with open(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_eukaryotes.fasta", "w") as eukaryotes_out:
+                with open(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_protozoa.fasta", "w") as protozoa_out:
+                    with open(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_fungi.fasta", "w") as fungi_out:
                         records = SeqIO.parse(f"{input_fasta}", "fasta")
                         for record in records:
                             if record.id in prokaryotes:

@@ -13,6 +13,7 @@ from Bio import SeqIO
 import numpy as np
 import pandas as pd
 import multiprocessing
+import pkg_resources
 
 # Author: Ming Yan, The Ohio State University
 
@@ -180,6 +181,7 @@ def split_fasta_parallel(input_fasta, tmp_dir, threads):
 def fasta_int_encoded(input_fasta_splited, tmp_dir, min_length):
     seq_origin = {}
     index = input_fasta_splited.split(".fasta")[0].split("_")[-1]
+
     with open(f"{tmp_dir}/input_fasta_int_encoded_{index}.csv", "w") as handle:
         records = SeqIO.parse(f"{tmp_dir}/{input_fasta_splited}", "fasta")
         for record in records:
@@ -234,18 +236,27 @@ def fasta_int_encoded_parellel(tmp_dir, threads, min_length):
 def int_encoded_to_array(int_encoded_csv, tmp_dir):  
     # convert int-encoded csv to kmerfre array and onehot-encoded array
     # the resultant arrays could be used for prediction
-    df = pd.read_csv(int_encoded_csv, header = None)
-    csv_filename = os.path.basename(int_encoded_csv)
-    index = csv_filename.split(".csv")[0].split("_")[-1]
-    ids = np.array(df.iloc[:,0])
-    df = df.iloc[:,1:]
-    x = np.array(df)
-    dna_forward = dna2onehot(x)
-    kmerfre = seq2kmerfrequency(x)
 
-    np.savez(f"{tmp_dir}/ids_{index}.npz", *ids)    
-    np.savez(f"{tmp_dir}/kmerfre_{index}.npz", *kmerfre)
-    np.savez(f"{tmp_dir}/forward_{index}.npz", *dna_forward)
+    # check number of input sequence, distribute input if n_seqs > 5000
+    demand = f"cat {int_encoded_csv}|wc -l"
+    check_n_seqs = subprocess.run(demand, shell=True, stdout=subprocess.PIPE, text=True)
+    n_seqs = int(check_n_seqs.stdout.strip())
+
+    n_files = math.ceil(n_seqs/5000)
+    for f in range(n_files):
+        df = pd.read_csv(int_encoded_csv, header = None, skiprows=f*5000 , nrows=5000)
+        csv_filename = os.path.basename(int_encoded_csv)
+        index = csv_filename.split(".csv")[0].split("_")[-1]
+        index_full = f"{index}_{str(f+1).zfill(2)}"
+        ids = np.array(df.iloc[:,0])
+        df = df.iloc[:,1:]
+        x = np.array(df)
+        dna_forward = dna2onehot(x)
+        kmerfre = seq2kmerfrequency(x)
+
+        np.savez(f"{tmp_dir}/ids_{index_full}.npz", *ids)    
+        np.savez(f"{tmp_dir}/kmerfre_{index_full}.npz", *kmerfre)
+        np.savez(f"{tmp_dir}/forward_{index_full}.npz", *dna_forward)
 
 def int_encoded_to_array_wrapper(args):
     int_encoded_to_array(*args)
@@ -349,9 +360,10 @@ def predict_stage1(forward_torch, kmerfre_torch, ids_np):
 
     prediction = []
     ID_list = []
+    file_path = os.path.dirname(__file__)
 
-    kmerfre = "model/stage1-kmerfre.pth"
-    cnn = "model/stage1-cnn.pth"
+    kmerfre = f"{file_path}/model/stage1-kmerfre.pth"
+    cnn = f"{file_path}/model/stage1-cnn.pth"
     model_path_kmerfre = Path(kmerfre)
     model_path_cnn = Path(cnn)
     kmerfre = model_kmerfre()
@@ -396,9 +408,10 @@ def predict_stage2(forward_np, kmerfre_np, ids_np, index_proceed_stage2):
 
     prediction = []
     ID_list = []
+    file_path = os.path.dirname(__file__)
 
-    kmerfre = "model/stage2-kmerfre.pth"
-    cnn = "model/stage2-cnn.pth"
+    kmerfre = f"{file_path}/model/stage2-kmerfre.pth"
+    cnn = f"{file_path}/model/stage2-cnn.pth"
     model_path_kmerfre = Path(kmerfre)
     model_path_cnn = Path(cnn)
     kmerfre = model_kmerfre()
