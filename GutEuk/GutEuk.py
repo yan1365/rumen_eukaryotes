@@ -128,7 +128,7 @@ def main():
     else:
         copy = f"cp {input_fasta} {tmp_dir}"
 
-    # preprocessing
+    # preprocessing 
     def preprocessing(input_fasta, tmp_dir, threads, min_length):
         ## split fasta into multiple
         utils.split_fasta_parallel(input_fasta, tmp_dir, threads)
@@ -243,6 +243,7 @@ def main():
     prediction_start = time.time()
     prediction()
     final_output = generate_final_output()
+    final_output.to_csv(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_output.csv", index = None)
     if to_fasta:
         write_to_fasta(final_output)
     prediction_end = time.time()

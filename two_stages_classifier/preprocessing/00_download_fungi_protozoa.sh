@@ -2,19 +2,25 @@
 #SBATCH --job-name=ncbi_%j
 #SBATCH --output=ncbi_%j.out
 # Walltime Limit: hh:mm:ss 
-#SBATCH --time=1:30:00
+#SBATCH --time=20:30:00
 #SBATCH --nodes=1
-#SBATCH --ntasks=20
+#SBATCH --ntasks=1
 #SBATCH --mail-type=ALL
 #SBATCH --account=PAS0439
 
 START=$SECONDS
 # downloaded 10-2-2023
 
-module load python/3.6-conda5.2
-source activate  ncbi_genome_download
+source activate ncbi_datasets
 
-ncbi-genome-download  protozoa  -p 20 --format fasta
+cd /fs/ess/PAS0439/MING/databases/protozoa_genome_genbank
+
+for f in $(cat accession.txt);
+do datasets download genome accession $f --include genome;
+mv ncbi_dataset.zip ${f}.zip;
+done
+
+
 
 DURATION=$(( SECONDS - START ))
 

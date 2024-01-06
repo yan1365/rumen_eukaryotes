@@ -31,5 +31,5 @@ with open("test/sags_test_5000bp.csv", "w") as handle:
         seqid = record.id
         seq = record.seq
         intencoded = utils.dna2int(seq)
-        handle.write(f"{seqid}," +  ",".join([str(f) for f in intencoded]) + f",0\n")
+        handle.write(f"{seqid}," +  ",".join([str(f) for f in intencoded]) + f",1\n")
 
