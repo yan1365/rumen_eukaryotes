@@ -32,7 +32,7 @@ model.to(device)
 # Put the model in evaluation mode
 model.eval()
 with torch.inference_mode():
-    for index in tqdm(range(40), desc = "Batchs (validation) finished", miniters=4):
+    for index in tqdm(range(80), desc = "Batchs (validation) finished", miniters=4):
         prediction = []
         train = utils.mydataset_m2("/fs/scratch/PAS0439/Ming/databases/gut_eukaryotes_classifier/transformed_dataset/test", str(index).zfill(3), 1)   
         train_loader = DataLoader(dataset=train,

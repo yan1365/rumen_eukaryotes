@@ -2,7 +2,7 @@
 #SBATCH --job-name=preprocessing_test_%j
 #SBATCH --output=preprocessing_test_%j.out
 # Walltime Limit: hh:mm:ss 
-#SBATCH --time=6:30:00
+#SBATCH --time=0:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=20
 #SBATCH --mail-type=ALL

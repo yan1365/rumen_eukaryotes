@@ -29,7 +29,7 @@ acc_per_genome_guteuk <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier
 plot_ready_density_tiara <- acc_per_genome_tiara %>% mutate(accuracy = accuracy*100) %>% 
   #mutate(genome_origin = ifelse(genome_origin == "SAG", "protozoa", genome_origin)) %>% 
   mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=93)", 
-        genome_origin == "protozoa" ~ "protozoa\n(n=3)",
+        genome_origin == "protozoa" ~ "protozoa\n(n=30)",
         genome_origin == "prokaryotes" ~ "prokaryotes\n(n=2995)",
         genome_origin == "SAG" ~ "ciliate SAGs\n(n=13)"))
  
@@ -38,7 +38,7 @@ plot_ready_density_tiara %>%  ggplot(aes(x = accuracy)) +
   geom_histogram(bins = 15) + 
   facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
   theme_minimal() +
-  labs(x = "Accuracy per genome - Tiara (%)", y = "Number of genomes") +
+  labs(x = "Percentage of genome correctly classified - Tiara", y = "Number of genomes") +
   theme(legend.position = "bottom") +
   theme(text = element_text(size=8)) +
   theme(axis.title.y = element_text(size = 7))
@@ -52,7 +52,7 @@ ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accura
 plot_ready_density_eukrep <- acc_per_genome_eukrep %>% mutate(accuracy = accuracy*100) %>% 
   #mutate(genome_origin = ifelse(genome_origin == "SAG", "protozoa", genome_origin)) %>% 
   mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=93)", 
-        genome_origin == "protozoa" ~ "protozoa\n(n=3)",
+        genome_origin == "protozoa" ~ "protozoa\n(n=30)",
         genome_origin == "prokaryotes" ~ "prokaryotes\n(n=2995)",
         genome_origin == "SAG" ~ "ciliate SAGs\n(n=13)"))
  
@@ -61,7 +61,7 @@ plot_ready_density_eukrep %>%  ggplot(aes(x = accuracy)) +
   geom_histogram(bins = 15) + 
   facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
   theme_minimal() +
-  labs(x = "Accuracy per genome - EukRep (%)", y = "Number of genomes") +
+  labs(x = "Percentage of genome correctly classified - EukRep", y = "Number of genomes") +
   theme(legend.position = "bottom") +
   theme(text = element_text(size=8)) +
   theme(axis.title.y = element_text(size = 7))
@@ -75,7 +75,7 @@ ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accura
 plot_ready_density_guteuk <- acc_per_genome_guteuk %>% mutate(accuracy = accuracy*100) %>% 
   #mutate(genome_origin = ifelse(genome_origin == "SAG", "protozoa", genome_origin)) %>% 
   mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=93)", 
-        genome_origin == "protozoa" ~ "protozoa\n(n=3)",
+        genome_origin == "protozoa" ~ "protozoa\n(n=30)",
         genome_origin == "prokaryotes" ~ "prokaryotes\n(n=2995)",
         genome_origin == "SAG" ~ "ciliate SAGs\n(n=13)"))
  
@@ -84,7 +84,7 @@ plot_ready_density_guteuk %>%  ggplot(aes(x = accuracy)) +
   geom_histogram(bins = 15) + 
   facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
   theme_minimal() +
-  labs(x = "Accuracy per genome - GutEuk (%)", y = "Number of genomes") +
+  labs(x = "Percentage of genome correctly classified - GutEuk (stage 1)", y = "Number of genomes") +
   theme(legend.position = "bottom") +
   theme(text = element_text(size=8)) +
   theme(axis.title.y = element_text(size = 7))

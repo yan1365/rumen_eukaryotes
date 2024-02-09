@@ -15,15 +15,15 @@ module load python/3.6-conda5.2
 
 cd /fs/scratch/PAS0439/Ming/databases/gut_eukaryotes_classifier
 
-#shuf test/test.csv > transformed_dataset/test_shuffled.csv
-#shuf train/train.csv > transformed_dataset/train_shuffled.csv
-#shuf val/val.csv > transformed_dataset/val_shuffled.csv
+shuf test/test.csv > transformed_dataset/test_shuffled.csv
+shuf train/train.csv > transformed_dataset/train_shuffled.csv
+shuf val/val.csv > transformed_dataset/val_shuffled.csv
 
 
 cd stage2
 shuf test/test.csv > transformed_dataset/test_shuffled.csv
-#shuf train/train.csv > transformed_dataset/train_shuffled.csv
-#shuf val/val.csv > transformed_dataset/val_shuffled.csv
+shuf train/train.csv > transformed_dataset/train_shuffled.csv
+shuf val/val.csv > transformed_dataset/val_shuffled.csv
 
 DURATION=$(( SECONDS - START ))
 

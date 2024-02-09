@@ -1,0 +1,45 @@
+---
+title: "03_GutEuk_per_genome_accuracy_benchmark_stage2"
+author: "Ming Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries
+```{r}
+library(tidyverse)
+library(ggpubr)
+```
+
+# Load data
+```{r}
+acc_per_genome_guteuk <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_stage2.csv")
+acc_per_genome_guteuk_stage1 <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_guteuk.csv")
+```
+
+# GutEuk 
+```{r}
+plot_ready_density_guteuk <- acc_per_genome_guteuk %>% filter(genome %in% acc_per_genome_guteuk_stage1$genome) %>%  mutate(accuracy = accuracy*100) %>% 
+  mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=93)", 
+        genome_origin == "protozoa" ~ "protozoa\n(n=30)",
+        genome_origin == "prokaryotes" ~ "prokaryotes\n(n=2995)",
+        genome_origin == "SAG" ~ "ciliate SAGs\n(n=13)"))
+ 
+  
+plot_ready_density_guteuk %>%  ggplot(aes(x = accuracy)) + 
+  geom_histogram(bins = 15) + 
+  facet_wrap(. ~ genome_origin, scales = "free_y", nrow = 1) + 
+  theme_minimal() +
+  labs(x = "Percentage of genome correctly classified - GutEuk (stage 2)", y = "Number of genomes") +
+  theme(legend.position = "bottom") +
+  theme(text = element_text(size=8)) +
+  theme(axis.title.y = element_text(size = 7))
+  
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_guteuk_stage2.svg", width = 6, height = 1.5, units = "in")
+
+```
+
+

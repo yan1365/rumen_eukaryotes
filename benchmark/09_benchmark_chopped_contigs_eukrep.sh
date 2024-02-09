@@ -2,7 +2,7 @@
 #SBATCH --job-name=eukrep_%j
 #SBATCH --output=eukrep_%j.out
 # Walltime Limit: hh:mm:ss 
-#SBATCH --time=8:30:00
+#SBATCH --time=1:30:00
 #SBATCH --nodes=1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 #SBATCH --ntasks-per-node=20
 #SBATCH --account=PAS0439
@@ -12,9 +12,10 @@ module load python/3.6-conda5.2
 source activate /fs/scratch/PAS0439/Ming/conda/eukrep-env
 
 
-cd  /fs/ess/PAS0439/MING/cilates_fungi_classifier/outputs/downstream_analysis/benchmark/
-
-EukRep -i /fs/scratch/PAS0439/Ming/databases/gut_eukaryotes_classifier/test/test.fasta -o test_eukrep_euk.fa --prokarya test_eukrep_pro.fa
+#EukRep -i /fs/scratch/PAS0439/Ming/databases/gut_eukaryotes_classifier/test/proka.fasta -o /fs/scratch/PAS0439/Ming/GutEuk_benchmark/proka_eukrep_euk.fa --prokarya /fs/scratch/PAS0439/Ming/GutEuk_benchmark/proka_eukrep_pro.fa
+#EukRep -i /fs/scratch/PAS0439/Ming/databases/gut_eukaryotes_classifier/test/fungi.fasta -o /fs/scratch/PAS0439/Ming/GutEuk_benchmark/fungi_eukrep_euk.fa --prokarya /fs/scratch/PAS0439/Ming/GutEuk_benchmark/fungi_eukrep_pro.fa
+#EukRep -i /fs/scratch/PAS0439/Ming/databases/gut_eukaryotes_classifier/test/protozoa.fasta -o /fs/scratch/PAS0439/Ming/GutEuk_benchmark/protozoa_eukrep_euk.fa --prokarya /fs/scratch/PAS0439/Ming/GutEuk_benchmark/protozoa_eukrep_pro.fa
+EukRep -i /fs/scratch/PAS0439/Ming/databases/gut_eukaryotes_classifier/test/sags_test_chopped.fasta  -o /fs/scratch/PAS0439/Ming/GutEuk_benchmark/sags_eukrep_euk.fa --prokarya /fs/scratch/PAS0439/Ming/GutEuk_benchmark/proka_eukrep_pro.fa
 
 DURATION=$(( SECONDS - START ))
 

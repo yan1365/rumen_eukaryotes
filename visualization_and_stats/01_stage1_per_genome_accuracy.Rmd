@@ -1,5 +1,5 @@
 ---
-title: "01_stage1_per_genome_accuracy"
+title: "01_stage1_per_genome_accuracy_combined"
 author: "Ming Yan"
 output: html_document
 ---
@@ -19,43 +19,12 @@ library(ggpubr)
 acc_per_genome <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome.csv")
 ```
 
-# plot v1
-```{r}
-plot_ready <- acc_per_genome %>% mutate(accuracy = accuracy*100) %>% 
-  mutate(genome_origin = ifelse(genome_origin == "SAG", "protozoa", genome_origin)) %>% 
-  mutate(accuracy = case_when(
-    accuracy < 90 ~ "< 90%",
-    accuracy >= 90 & accuracy <95 ~ "90-95%",
-    accuracy >= 95 ~ "> 95%"
-  )) %>% group_by(genome_origin) %>% 
-  summarise(count_per_genome_origin = n(), across()) %>%
- group_by(genome_origin, accuracy) %>%
-  summarize(count = n(), across()) %>% 
-  distinct() %>% 
-  mutate(percentage = count/count_per_genome_origin * 100) %>%
-   mutate(percentage = round(percentage,2)) %>% 
-  mutate(accuracy = factor(accuracy, levels = c("< 90%", "90-95%", "> 95%"))) %>% 
-  mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=109)", 
-        genome_origin == "protozoa" ~ "protozoa\n(n=17)",
-        genome_origin == "prokaryotes" ~ "prokaryotes\n(n=3154)"))
-  
-plot_ready %>%  ggplot(aes(x = genome_origin, y = percentage, fill = accuracy)) + 
-  geom_bar(stat = "identity", position="stack") + 
-  theme_minimal() +
-  labs(x = "", y = "percentage of genomes (%)") +
-  theme(legend.position = "bottom") +
-  theme(text = element_text(size=8))
-  
-ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome.svg", width = 3, height = 3, units = "in")
-
-```
-
-# plot v2 density plot
+# combined
 ```{r}
 plot_ready_density <- acc_per_genome %>% mutate(accuracy = accuracy*100) %>% 
   mutate(genome_origin = ifelse(genome_origin == "SAG", "protozoa", genome_origin)) %>% 
   mutate(genome_origin = case_when(genome_origin == "fungi" ~ "fungi\n(n=109)", 
-        genome_origin == "protozoa" ~ "protozoa\n(n=17)",
+        genome_origin == "protozoa" ~ "protozoa\n(n=48)",
         genome_origin == "prokaryotes" ~ "prokaryotes\n(n=3154)")) 
  
   
@@ -68,7 +37,7 @@ plot_ready_density %>%  ggplot(aes(x = accuracy)) +
   theme(text = element_text(size=8)) +
   theme(axis.title.y = element_text(size = 7))
   
-ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_detailed.svg", width = 5, height = 1.5, units = "in")
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/accuracy_per_genome_guteuk_combined.svg", width = 5, height = 1.5, units = "in")
 
 ```
 

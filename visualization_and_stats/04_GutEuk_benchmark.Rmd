@@ -1,0 +1,97 @@
+---
+title: "04_GutEuk_benchmark_contigs"
+author: "Ming Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries
+```{r}
+library(tidyverse)
+library(ggpubr)
+library(grid)
+```
+
+# Load data
+```{r}
+acc_by_genome <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/GutEuk_benchmark_corrected_bp_by_genome.csv")
+acc_by_len <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/GutEuk_benchmark_accuracy_by_contig_length.csv") 
+pre_recall_by_len <- read.csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/GutEuk_benchmark_preci_recall_by_len.csv")
+pre_recall_by_len_tiara_eukrep <- read.csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/tiara_eukrep_preci_recall_by_len.csv")
+contigs_prediction_full <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/GutEuk_benchmark_full.csv")
+```
+
+```{r}
+pre_recall_by_len$tool = "GutEuk"
+pre_recall_by_len_merged <- rbind(pre_recall_by_len, pre_recall_by_len_tiara_eukrep)
+pre_recall_by_len_merged$category <- factor(pre_recall_by_len_merged$category, levels = c("prokaryotes", "eukaryotes", "fungi", "protozoa"))
+
+for_legend <- pre_recall_by_len_merged %>% filter(category %in% c("prokaryotes", "eukaryotes")) %>% ggplot(aes(x = sequence_length, y = recall, col = tool)) + geom_point() + geom_line() + facet_wrap(vars(category),dir = "v", ncol = 1) + 
+  theme_minimal() +
+  labs(x = "", y = "Recall") +
+  theme(text = element_text(size=7)) +
+  theme(axis.title.y = element_text(size = 6))+
+  theme(axis.text.x = element_blank())+
+  theme(legend.position = "bottom", legend.title = element_blank())
+
+legend <- get_legend(for_legend)
+pre_recall_by_len_merged %>% filter(category %in% c("prokaryotes", "eukaryotes")) %>% ggplot(aes(x = sequence_length, y = recall, col = tool)) + geom_point() + geom_line() + facet_wrap(vars(category),dir = "v", ncol = 1) + 
+  theme_minimal() +
+  labs(x = "", y = "Recall") +
+  theme(text = element_text(size=6)) +
+  theme(axis.text.x = element_blank())+
+  theme(legend.position = "none", legend.title = element_blank())
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/recall_contigs_by_len_stage1.svg", width = 5, height = 1.5, units = "in")
+
+```
+
+
+```{r}
+pre_recall_by_len_merged %>% filter(category %in% c("prokaryotes", "eukaryotes")) %>% ggplot(aes(x = sequence_length, y = precision, col = tool)) + geom_point() + geom_line() + facet_wrap(vars(category),dir = "v", ncol = 1) + 
+  theme_minimal() +
+  labs(x = "", y = "Precision") +
+  theme(text = element_text(size=6)) +
+  theme(axis.text.x = element_blank())+
+  theme(legend.position = "none", legend.title = element_blank())
+  
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/precision_contigs_by_len_stage1.svg", width = 5, height = 1.5, units = "in")
+
+```
+```{r}
+ggarrange(legend, nrow = 1, heights = 0.2)
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/legend.svg", width = 2, height = 0.2, units = "in")
+
+
+```
+
+```{r}
+
+pre_recall_by_len_merged %>% filter(!category %in% c("prokaryotes", "eukaryotes")) %>% ggplot(aes(x = sequence_length, y = recall)) + geom_point() + geom_line() + facet_wrap(vars(category),dir = "v", ncol = 1) + 
+  theme_minimal() +
+  labs(x = "", y = "Recall") +
+  theme(text = element_text(size=6)) +
+  theme(axis.text.x = element_blank())
+  
+  
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/recall_contigs_by_len_stage2.svg", width = 5, height = 1.5, units = "in")
+
+
+```
+
+```{r}
+
+pre_recall_by_len_merged %>% filter(!category %in% c("prokaryotes", "eukaryotes")) %>% ggplot(aes(x = sequence_length, y = precision)) + geom_point() + geom_line() + facet_wrap(vars(category),dir = "v", ncol = 1) + 
+  theme_minimal() +
+  labs(x = "", y = "Precision") +
+  theme(text = element_text(size=6)) +
+  theme(axis.text.x = element_blank())
+  
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/precision_contigs_by_len_stage2.svg", width = 5, height = 1.5, units = "in")
+
+
+```
+
+
