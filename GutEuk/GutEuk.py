@@ -38,16 +38,26 @@ parser.add_argument(
     "-i",
     "--input",
     metavar="input",
-    help="The path to a fasta (or gzipped fasta) file.",
+    help='''The path to the contigs file (FASTA or gzipped FASTA).
+    If -b/--bin is provided, the input should be the dir containing individual bins (MAGs).''',
     type=str,
     required=True
+)
+
+parser.add_argument(
+    "-b",
+    "--bin",
+    help="If provided, treat individual FASTA files as bins instead of contigs",
+    required=False,
+    action='store_true'
 )
 
 parser.add_argument(
     "-o",
     "--output_dir",
     metavar="output",
-    help="A path to output files.",
+    help='''A path to output files.
+    If -b/--bin is provided, the output is a csv file containing prediction results for the input bins (MAGs)''',
     default=None,
     required=True
 )
@@ -68,7 +78,7 @@ parser.add_argument(
 
 
 parser.add_argument(
-    "--to_fasta", help="Write predicted results to fasta files", action='store_true'
+    "--to_fasta", help="Write predicted results to fasta files (for contigs only)", action='store_true'
 )
 
 args = parser.parse_args()
@@ -83,11 +93,17 @@ def main():
     output_dir = os.path.normpath(args.output_dir)
     min_length = args.min_len
     to_fasta = args.to_fasta
+    input_bin = args.bin
+    
+    if input_bin:
+        tmp_dir = f"{output_dir}/tmp"
+    else:
+        tmp_dir = os.path.normpath(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_tmp")
 
     if min_length > 5000:
         min_length = 5000
     threads = args.threads
-    tmp_dir = os.path.normpath(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_tmp")
+   
 
     ## mise
     start_time = str(datetime.now()).split('.')[0]
@@ -105,9 +121,13 @@ def main():
         os.mkdir(output_dir)
 
     # create a log file, overwrite if existed
-    if os.path.exists(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_log.txt"):
-        os.remove(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_log.txt")
-    logging.basicConfig(filename=os.path.join(output_dir, f"{fasta_filename.split('.')[0]}_GutEuk_log.txt"), level=logging.INFO, format='%(message)s')
+    if input_bin:
+        logfile = "GutEuk_log.txt"
+    else:
+        logfile = f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_log.txt"
+    if os.path.exists(logfile):
+        os.remove(logfile)
+    logging.basicConfig(filename=os.path.join(logfile), level=logging.INFO, format='%(message)s')
     logging.info(f"{parser.description}")
     
     # create tmp dir
@@ -117,16 +137,6 @@ def main():
         pass
     
 
-    # unzip {input_fasta} if zipped
-    if input_fasta.endswith(".gz"):
-        copy = f"cp {input_fasta} {tmp_dir}"
-        gunzip = f"gunzip {tmp_dir}/{fasta_filename}"
-        subprocess.run(copy, shell=True, check=True, text=True)
-        subprocess.run(gunzip, shell=True, check=True, text=True)
-        fasta_filename = fasta_filename.strip(".gz")
-        input_fasta = os.path.join(tmp_dir, fasta_filename)
-    else:
-        copy = f"cp {input_fasta} {tmp_dir}"
 
     # preprocessing 
     def preprocessing(input_fasta, tmp_dir, threads, min_length):
@@ -141,14 +151,14 @@ def main():
         utils.save_npz_parellel(tmp_dir, threads)
 
     # prediction for inidividual fragment
-    def prediction():
+    def prediction(tmp_dir):
         indexs = [f.split("forward_")[1].split(".npz")[0] for f in glob.glob(f"{tmp_dir}/forward*.npz")]
         for index in indexs:
             utils.predict(tmp_dir, index)
 
 
     # organize fragment prediction results and generate final output
-    def generate_final_output():
+    def generate_final_output(tmp_dir):
         seqorigin = glob.glob(f"{tmp_dir}/seqorigin*.csv")
         stage1_res = glob.glob(f"{tmp_dir}/input_fasta_*_stage1_out.csv")
         stage2_res = glob.glob(f"{tmp_dir}/input_fasta_*_stage2_out.csv")
@@ -210,6 +220,61 @@ def main():
         final_output.loc[list(final_output.query("stage1_prediction == 'undetermined'").index), "stage2_prediction"] = "undetermined"
         return final_output
 
+    def generate_final_output_for_bins(tmp_dir):
+        bin_list = []
+        stage1_predict = []
+        stage2_predict = []
+        stage1_confidence = []
+        stage2_confidence = []
+        for _ in glob.glob(f"{tmp_dir}/*"):
+            Bin = _.split("/")[-1]
+            bin_list.append(Bin)
+            stage1_df_list = []
+            stage2_df_list = []
+
+            for stage1_out in glob.glob(f"{tmp_dir}/{Bin}/*stage1*.csv"):
+                stage1_df_list.append(pd.read_csv(stage1_out))
+                stage1_df = pd.concat(stage1_df_list)
+                if len(stage1_df) == 0:
+                    logging.info(f"{Bin} does not have any contig that is longer than the minimal contig length")
+                    pass
+                else:
+                    eukaryotes_percent = len(stage1_df.query('predict == "eukaryotes"'))/len(stage1_df)
+                    prokaryotes_percent = 1 - eukaryotes_percent
+                    if eukaryotes_percent > prokaryotes_percent:
+                        stage1_predict.append("eukaryotes")
+                        stage1_confidence.append(eukaryotes_percent)
+                    elif eukaryotes_percent == prokaryotes_percent:
+                        stage1_predict.append("undetermined")
+                        stage1_confidence.append("NA")
+                    else:
+                        stage1_predict.append("prokaryotes")
+                        stage1_confidence.append(prokaryotes_percent)
+
+            if stage1_predict[-1] == "prokaryotes":
+                stage2_predict.append("NA")
+                stage2_confidence.append("NA")
+
+            else:
+                for stage2_out in glob.glob(f"{tmp_dir}/{Bin}/*stage2*.csv"):
+                    stage2_df_list.append(pd.read_csv(stage2_out))
+                    stage2_df = pd.concat(stage2_df_list)
+                    fungi_percent = len(stage2_df.query('predict == "eukaryotes"'))/len(stage2_df)
+                    protozoa_percent = 1 - fungi_percent
+
+                    if fungi_percent > protozoa_percent:
+                        stage2_predict.append("fungi")
+                        stage2_confidence.append(fungi_percent)
+                    elif fungi_percent == protozoa_percent:
+                        stage2_predict.append("undetermined")
+                        stage2_confidence.append("NA")
+                    else:
+                        stage2_predict.append("protozoa")
+                        stage2_confidence.append(protozoa_percent)
+        
+        bin_predict_out = pd.DataFrame.from_dict({"bin":bin_list, "stage1_prediction":stage1_predict, "stage1_confidence":stage1_confidence, "stage2_prediction":stage2_predict, "stage2_confidence":stage2_confidence })
+        return bin_predict_out
+
     
     def write_to_fasta(final_output):
         prokaryotes = list(final_output.query('stage1_prediction == "prokaryotes"').sequence_id)
@@ -235,24 +300,56 @@ def main():
 
 
     preprocessing_start = time.time()
-    preprocessing(input_fasta, tmp_dir, threads, min_length)
-    preprocessing_end = time.time()
-    logging.info(f"Preprocessing finished in {preprocessing_end - preprocessing_start:.2f} secs")
-    
+    if input_bin:
+        # preprocessing/formating 
+        Bins = glob.glob(f"{input_fasta}/*.fa") + glob.glob(f"{input_fasta}/*.fasta") + glob.glob(f"{input_fasta}/*.fna")
+        for Bin in Bins:
+            bin_basename = Bin.split("/")[-1]
+            try:
+                os.mkdir(f"{tmp_dir}/{bin_basename}")
+            except FileExistsError:
+                pass
+            preprocessing(Bin,  f"{tmp_dir}/{bin_basename}", 1, min_length)
+        preprocessing_end = time.time()
+        logging.info(f"Preprocessing finished in {preprocessing_end - preprocessing_start:.2f} secs")
 
-    prediction_start = time.time()
-    prediction()
-    final_output = generate_final_output()
-    final_output.to_csv(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_output.csv", index = None)
-    if to_fasta:
-        write_to_fasta(final_output)
+        # prediction
+        prediction_start = time.time()
+        for bin_tmp_dir in glob.glob(f"{tmp_dir}/*"):
+            prediction(bin_tmp_dir)
+        bin_level_predict_out = generate_final_output_for_bins(tmp_dir)
+        bin_level_predict_out.to_csv(f"{output_dir}/GutEuk_output.csv", index = None)
+
+
+    else:
+        # unzip {input_fasta} if zipped
+        if input_fasta.endswith(".gz"):
+            copy = f"cp {input_fasta} {tmp_dir}"
+            gunzip = f"gunzip {tmp_dir}/{fasta_filename}"
+            subprocess.run(copy, shell=True, check=True, text=True)
+            subprocess.run(gunzip, shell=True, check=True, text=True)
+            fasta_filename = fasta_filename.strip(".gz")
+            input_fasta = os.path.join(tmp_dir, fasta_filename)
+        else:
+            copy = f"cp {input_fasta} {tmp_dir}"
+
+        preprocessing(input_fasta, tmp_dir, threads, min_length)
+        preprocessing_end = time.time()
+        logging.info(f"Preprocessing finished in {preprocessing_end - preprocessing_start:.2f} secs")
+        
+        prediction_start = time.time()
+        prediction(tmp_dir)
+        final_output = generate_final_output(tmp_dir)
+        final_output.to_csv(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_output.csv", index = None)
+        if to_fasta:
+            write_to_fasta(final_output)
+    
     prediction_end = time.time()
     logging.info(f"Prediction finished in {prediction_end - prediction_start:.2f} secs")
 
-
     # clearn up, remove tmp dir
     try:
-        shutil.rmtree(f"{tmp_dir}")
+        shutil.rmtree(f"{tmp_dir}") 
     except Exception as e:
         print(f"Unexpected error: {e}")
 
