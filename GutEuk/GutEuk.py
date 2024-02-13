@@ -137,7 +137,6 @@ def main():
         pass
     
 
-
     # preprocessing 
     def preprocessing(input_fasta, tmp_dir, threads, min_length):
         ## split fasta into multiple
@@ -150,6 +149,11 @@ def main():
         ## the resultant arrays could be used for prediction
         utils.save_npz_parellel(tmp_dir, threads)
 
+    def preprocessing_bin_dir(bin_fasta, tmp_dir, min_length, threads):
+        utils.preprocessing_bin_parellel(bin_fasta, tmp_dir, min_length, threads)
+
+
+    
     # prediction for inidividual fragment
     def prediction(tmp_dir):
         indexs = [f.split("forward_")[1].split(".npz")[0] for f in glob.glob(f"{tmp_dir}/forward*.npz")]
@@ -237,7 +241,8 @@ def main():
                 stage1_df = pd.concat(stage1_df_list)
                 if len(stage1_df) == 0:
                     logging.info(f"{Bin} does not have any contig that is longer than the minimal contig length")
-                    pass
+                    stage1_predict.append("NA")
+                    stage1_confidence.append("NA")
                 else:
                     eukaryotes_percent = len(stage1_df.query('predict == "eukaryotes"'))/len(stage1_df)
                     prokaryotes_percent = 1 - eukaryotes_percent
@@ -259,18 +264,23 @@ def main():
                 for stage2_out in glob.glob(f"{tmp_dir}/{Bin}/*stage2*.csv"):
                     stage2_df_list.append(pd.read_csv(stage2_out))
                     stage2_df = pd.concat(stage2_df_list)
-                    fungi_percent = len(stage2_df.query('predict == "eukaryotes"'))/len(stage2_df)
-                    protozoa_percent = 1 - fungi_percent
-
-                    if fungi_percent > protozoa_percent:
-                        stage2_predict.append("fungi")
-                        stage2_confidence.append(fungi_percent)
-                    elif fungi_percent == protozoa_percent:
-                        stage2_predict.append("undetermined")
+                    if len(stage2_df) == 0:
+                        stage2_predict.append("NA")
                         stage2_confidence.append("NA")
+                    
                     else:
-                        stage2_predict.append("protozoa")
-                        stage2_confidence.append(protozoa_percent)
+                        fungi_percent = len(stage2_df.query('predict == "fungi"'))/len(stage1_df)
+                        protozoa_percent = 1 - fungi_percent
+
+                        if fungi_percent > protozoa_percent:
+                            stage2_predict.append("fungi")
+                            stage2_confidence.append(fungi_percent)
+                        elif fungi_percent == protozoa_percent:
+                            stage2_predict.append("undetermined")
+                            stage2_confidence.append("NA")
+                        else:
+                            stage2_predict.append("protozoa")
+                            stage2_confidence.append(protozoa_percent)
         
         bin_predict_out = pd.DataFrame.from_dict({"bin":bin_list, "stage1_prediction":stage1_predict, "stage1_confidence":stage1_confidence, "stage2_prediction":stage2_predict, "stage2_confidence":stage2_confidence })
         return bin_predict_out
@@ -304,12 +314,16 @@ def main():
         # preprocessing/formating 
         Bins = glob.glob(f"{input_fasta}/*.fa") + glob.glob(f"{input_fasta}/*.fasta") + glob.glob(f"{input_fasta}/*.fna")
         for Bin in Bins:
-            bin_basename = Bin.split("/")[-1]
+            if Bin.endswith(".fasta"):
+                pass
+            else:
+                Bin = Bin.split(".")[0] + ".fasta"
+                bin_basename = Bin.split("/")[-1].split(".")[0]
             try:
                 os.mkdir(f"{tmp_dir}/{bin_basename}")
             except FileExistsError:
                 pass
-            preprocessing(Bin,  f"{tmp_dir}/{bin_basename}", 1, min_length)
+        preprocessing_bin_dir(Bins, tmp_dir, min_length, threads)
         preprocessing_end = time.time()
         logging.info(f"Preprocessing finished in {preprocessing_end - preprocessing_start:.2f} secs")
 

@@ -215,6 +215,50 @@ def fasta_int_encoded(input_fasta_splited, tmp_dir, min_length):
             seq_origin_df.rename(columns = {"index": "seq", 0:'origin'}, inplace = True)
             seq_origin_df.to_csv(f"{tmp_dir}/seqorigin_{index}.csv", index = None)
 
+def fasta_int_encoded_bin(input_fasta, tmp_dir, min_length):
+    if input_fasta.endswith(".fasta"):
+        bin_fasta_new = input_fasta.split("/")[-1]
+    else:
+        bin_fasta_new = input_fasta.split("/")[-1].split(".")[0] + ".fasta"
+    name_base = bin_fasta_new.split(".fasta")[0]
+    seq_origin = {}
+    name_base = bin_fasta_new.split("/")[-1].split(".fasta")[0]
+
+    with open(f"{tmp_dir}/{name_base}/{name_base}.csv", "w") as handle:
+        records = SeqIO.parse(f"{input_fasta}", "fasta")
+        for record in records:
+            seqid = record.id
+            seq = record.seq
+            intencoded = dna2int(seq)
+            if len(intencoded) < min_length:
+                continue
+            elif len(intencoded) <= 5000:
+                # zero-padding on the right to 5000 bp when seq length < 5000
+                for f in range(5000 - len(intencoded)):
+                    intencoded.append(0)
+                seq_origin[str(seqid)] = str(seqid)
+                handle.write(f"{seqid}," +  ",".join([str(f) for f in intencoded]) + "\n")
+            
+            else:
+                # if seq length > 5000, split it into fragments of 5000 bp and give prediction to each fragment 
+                fragments =  len(intencoded) // 5000  
+                if fragments == 1:
+                    intencoded = intencoded[:5000]
+                    seq_origin[str(seqid)] = str(seqid)
+                    handle.write(f"{seqid}," +  ",".join([str(f) for f in intencoded]) + "\n")
+                
+                else:
+                    for f in range(fragments):
+                        intencoded_fragment = intencoded[5000*f:5000*(f+1)]
+                        seqid_new = f"{str(seqid)}_{str(f+1)}"
+                        seq_origin[str(seqid_new)] = str(seqid)
+                        handle.write(f"{seqid_new}," +  ",".join([str(f) for f in intencoded_fragment]) + "\n")
+
+            seq_origin_df = pd.DataFrame.from_dict(seq_origin, orient = "index").reset_index()
+            seq_origin_df.rename(columns = {"index": "seq", 0:'origin'}, inplace = True)
+            seq_origin_df.to_csv(f"{tmp_dir}/{name_base}/seqorigin.csv", index = None)
+
+
 def fasta_int_encoded_wrapper(args):
     fasta_int_encoded(*args)
 
@@ -230,6 +274,24 @@ def fasta_int_encoded_parellel(tmp_dir, threads, min_length):
 
         with multiprocessing.Pool(processes=threads) as pool:
             pool.map(fasta_int_encoded_wrapper, args_list)
+
+# preprocessing, bins as input
+def preprocessing_bin(bin_fasta, tmp_dir, min_length):
+    if bin_fasta.endswith(".fasta"):
+        bin_fasta_new = bin_fasta.split("/")[-1]
+    else:
+        bin_fasta_new = bin_fasta.split("/")[-1].split(".")[0] + ".fasta"
+    name_base = bin_fasta_new.split(".fasta")[0]
+    fasta_int_encoded_bin(bin_fasta, f"{tmp_dir}", min_length)
+    int_encoded_to_array(f"{tmp_dir}/{name_base}/{name_base}.csv", f"{tmp_dir}/{name_base}")
+
+def preprocessing_bin_wrapper(args):
+    preprocessing_bin(*args)
+
+def preprocessing_bin_parellel(bin_fasta, tmp_dir, min_length, threads):        
+    args_list = [[bin_fasta[f], tmp_dir, min_length] for f in range(len(bin_fasta))]
+    with multiprocessing.Pool(processes=threads) as pool:
+        pool.map(preprocessing_bin_wrapper, args_list)
 
 # int-encoded to npz
 def int_encoded_to_array(int_encoded_csv, tmp_dir):  
