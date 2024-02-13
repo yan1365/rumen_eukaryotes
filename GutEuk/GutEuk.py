@@ -329,8 +329,7 @@ def main():
 
         # prediction
         prediction_start = time.time()
-        for bin_tmp_dir in glob.glob(f"{tmp_dir}/*"):
-            prediction(bin_tmp_dir)
+        utils.prediction_bin_parellel(tmp_dir, threads)
         bin_level_predict_out = generate_final_output_for_bins(tmp_dir)
         bin_level_predict_out.to_csv(f"{output_dir}/GutEuk_output.csv", index = None)
 

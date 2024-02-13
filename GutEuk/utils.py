@@ -519,3 +519,18 @@ def predict(tmp_dir, index):
     stage2_res = predict_stage2(forward_np, kmerfre_np, ids_np, index_proceed_stage2)
     stage1_res.to_csv(f"{tmp_dir}/input_fasta_{index}_stage1_out.csv", index = None)
     stage2_res.to_csv(f"{tmp_dir}/input_fasta_{index}_stage2_out.csv", index = None)
+
+def prediction_bin(tmp_dir):
+    indexs = [f.split("forward_")[1].split(".npz")[0] for f in glob.glob(f"{tmp_dir}/forward*.npz")]
+    for index in indexs:
+        predict(tmp_dir, index)
+        
+def prediction_bin_wrapper(args):
+    prediction_bin(*args)
+
+
+def prediction_bin_parellel(tmp_dir, threads):        
+    tmp_dir_list = glob.glob(f"{tmp_dir}/*")
+    args_list = [[tmp_dir_list[f]] for f in range(len(tmp_dir_list))]
+    with multiprocessing.Pool(processes=threads) as pool:
+        pool.map(prediction_bin_wrapper, args_list)
