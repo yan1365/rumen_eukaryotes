@@ -44,6 +44,7 @@ parser.add_argument(
     required=True
 )
 
+
 parser.add_argument(
     "-b",
     "--bin",
@@ -51,6 +52,34 @@ parser.add_argument(
     required=False,
     action='store_true'
 )
+
+parser.add_argument(
+    "-s1",
+    "--stage1_confidence",
+    metavar="stage1 confidence level",
+    help='''Confidence level for stage1 classification (when -b/--bin is provided): 
+    e.g. -s1 0.6: only give predictions when 60 percents of the bin is classified as the same category.
+    Default: 0.5.
+    ''',
+    required=False,
+    type=float,
+    default=0.5
+)
+
+
+parser.add_argument(
+    "-s2",
+    "--stage2_confidence",
+    metavar="stage2 confidence level",
+    help='''Confidence level for stage2 classification (when -b/--bin is provided): 
+    e.g. -s2 0.6: only give predictions when 60 percents of the bin is classified as the same category.
+    Default: 0.8.
+    ''',
+    required=False,
+    type=float,
+    default=0.8
+)
+
 
 parser.add_argument(
     "-o",
@@ -66,14 +95,14 @@ parser.add_argument(
     "-m",
     "--min_len",
     help=f"""Minimum length of a sequence. Sequences shorter than min_len are discarded. 
-    Default: 3000 bp.""",
+    Default: 5000 bp.""",
     type=int,
-    default=3000
+    default=5000
 )
 
 
 parser.add_argument(
-    "-t", "--threads", help="Number of threads used. The default is 1.", type=int, default=1
+    "-t", "--threads", help="Number of threads used. Default: 1.", type=int, default=1
 )
 
 
@@ -97,12 +126,14 @@ def main():
     
     if input_bin:
         tmp_dir = f"{output_dir}/tmp"
+
     else:
         tmp_dir = os.path.normpath(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_tmp")
 
-    if min_length > 5000:
-        min_length = 5000
+
     threads = args.threads
+    s1 = args.stage1_confidence
+    s2 = args.stage2_confidence
    
 
     ## mise
@@ -153,7 +184,6 @@ def main():
         utils.preprocessing_bin_parellel(bin_fasta, tmp_dir, min_length, threads)
 
 
-    
     # prediction for inidividual fragment
     def prediction(tmp_dir):
         indexs = [f.split("forward_")[1].split(".npz")[0] for f in glob.glob(f"{tmp_dir}/forward*.npz")]
@@ -247,14 +277,25 @@ def main():
                     eukaryotes_percent = len(stage1_df.query('predict == "eukaryotes"'))/len(stage1_df)
                     prokaryotes_percent = 1 - eukaryotes_percent
                     if eukaryotes_percent > prokaryotes_percent:
-                        stage1_predict.append("eukaryotes")
-                        stage1_confidence.append(eukaryotes_percent)
+                        if eukaryotes_percent > s1:
+                            stage1_predict.append("eukaryotes")
+                            stage1_confidence.append(eukaryotes_percent)
+                        else:
+                            stage1_predict.append("undetermined")
+                            stage1_confidence.append("NA")
+
                     elif eukaryotes_percent == prokaryotes_percent:
                         stage1_predict.append("undetermined")
                         stage1_confidence.append("NA")
+
                     else:
-                        stage1_predict.append("prokaryotes")
-                        stage1_confidence.append(prokaryotes_percent)
+                        if prokaryotes_percent > s1:
+                            stage1_predict.append("prokaryotes")
+                            stage1_confidence.append(prokaryotes_percent)
+                        else:
+                            stage1_predict.append("undetermined")
+                            stage1_confidence.append("NA")
+
 
             if stage1_predict[-1] == "prokaryotes":
                 stage2_predict.append("NA")
@@ -273,15 +314,25 @@ def main():
                         protozoa_percent = 1 - fungi_percent
 
                         if fungi_percent > protozoa_percent:
-                            stage2_predict.append("fungi")
-                            stage2_confidence.append(fungi_percent)
+                            if fungi_percent > s2:
+                                stage2_predict.append("fungi")
+                                stage2_confidence.append(fungi_percent)
+                            else:
+                                stage2_predict.append("undetermined")
+                                stage2_confidence.append("NA")
+
                         elif fungi_percent == protozoa_percent:
                             stage2_predict.append("undetermined")
                             stage2_confidence.append("NA")
+
                         else:
-                            stage2_predict.append("protozoa")
-                            stage2_confidence.append(protozoa_percent)
-        
+                            if protozoa_percent > s2:
+                                stage2_predict.append("protozoa")
+                                stage2_confidence.append(protozoa_percent)
+                            else:
+                                stage2_predict.append("undetermined")
+                                stage2_confidence.append("NA")
+
         bin_predict_out = pd.DataFrame.from_dict({"bin":bin_list, "stage1_prediction":stage1_predict, "stage1_confidence":stage1_confidence, "stage2_prediction":stage2_predict, "stage2_confidence":stage2_confidence })
         return bin_predict_out
 
@@ -323,6 +374,7 @@ def main():
                 os.mkdir(f"{tmp_dir}/{bin_basename}")
             except FileExistsError:
                 pass
+
         preprocessing_bin_dir(Bins, tmp_dir, min_length, threads)
         preprocessing_end = time.time()
         logging.info(f"Preprocessing finished in {preprocessing_end - preprocessing_start:.2f} secs")
@@ -331,8 +383,7 @@ def main():
         prediction_start = time.time()
         utils.prediction_bin_parellel(tmp_dir, threads)
         bin_level_predict_out = generate_final_output_for_bins(tmp_dir)
-        bin_level_predict_out.to_csv(f"{output_dir}/GutEuk_output.csv", index = None)
-
+        bin_level_predict_out.to_csv(f"{output_dir}/GutEuk_output.csv", index = None) 
 
     else:
         # unzip {input_fasta} if zipped
