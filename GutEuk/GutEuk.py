@@ -2,6 +2,7 @@
 
 # Author: Ming Yan, The Ohio State University
 import os
+import re
 import time
 import shutil
 import utils
@@ -128,7 +129,8 @@ def main():
         tmp_dir = f"{output_dir}/tmp"
 
     else:
-        tmp_dir = os.path.normpath(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_tmp")
+        fasta_filename_trailing_removed = re.search(r"(.*).(fa|fasta|fna)$", fasta_filename).group(1)
+        tmp_dir = os.path.normpath(f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_tmp")
 
 
     threads = args.threads
@@ -155,7 +157,7 @@ def main():
     if input_bin:
         logfile = "GutEuk_log.txt"
     else:
-        logfile = f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_log.txt"
+        logfile = f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_log.txt"
     if os.path.exists(logfile):
         os.remove(logfile)
     logging.basicConfig(filename=os.path.join(logfile), level=logging.INFO, format='%(message)s')
@@ -343,10 +345,10 @@ def main():
         protozoa = list(final_output.query('stage2_prediction == "protozoa"').sequence_id)
         fungi = list(final_output.query('stage2_prediction == "fungi"').sequence_id)
 
-        with open(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_prokaryotes.fasta", "w") as prokaryotes_out:
-            with open(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_eukaryotes.fasta", "w") as eukaryotes_out:
-                with open(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_protozoa.fasta", "w") as protozoa_out:
-                    with open(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_fungi.fasta", "w") as fungi_out:
+        with open(f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_prokaryotes.fasta", "w") as prokaryotes_out:
+            with open(f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_eukaryotes.fasta", "w") as eukaryotes_out:
+                with open(f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_protozoa.fasta", "w") as protozoa_out:
+                    with open(f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_fungi.fasta", "w") as fungi_out:
                         records = SeqIO.parse(f"{input_fasta}", "fasta")
                         for record in records:
                             if record.id in prokaryotes:
@@ -365,11 +367,8 @@ def main():
         # preprocessing/formating 
         Bins = glob.glob(f"{input_fasta}/*.fa") + glob.glob(f"{input_fasta}/*.fasta") + glob.glob(f"{input_fasta}/*.fna")
         for Bin in Bins:
-            if Bin.endswith(".fasta"):
-                pass
-            else:
-                Bin = Bin.split(".")[0] + ".fasta"
-                bin_basename = Bin.split("/")[-1].split(".")[0]
+            bin_basename = re.search(r"(.*).(fa|fasta|fna)$", Bin.split("/")[-1]).group(1)
+            Bin = re.search(r"(.*).(fa|fasta|fna)$", Bin).group(1) + ".fasta"
             try:
                 os.mkdir(f"{tmp_dir}/{bin_basename}")
             except FileExistsError:
@@ -404,7 +403,7 @@ def main():
         prediction_start = time.time()
         prediction(tmp_dir)
         final_output = generate_final_output(tmp_dir)
-        final_output.to_csv(f"{output_dir}/{fasta_filename.split('.')[0]}_GutEuk_output.csv", index = None)
+        final_output.to_csv(f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_output.csv", index = None)
         if to_fasta:
             write_to_fasta(final_output)
     
