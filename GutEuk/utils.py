@@ -1,3 +1,4 @@
+import re
 import torch
 import torchvision
 from torch.utils.data import Dataset, DataLoader
@@ -219,7 +220,7 @@ def fasta_int_encoded_bin(input_fasta, tmp_dir, min_length):
     if input_fasta.endswith(".fasta"):
         bin_fasta_new = input_fasta.split("/")[-1]
     else:
-        bin_fasta_new = input_fasta.split("/")[-1].split(".")[0] + ".fasta"
+        bin_fasta_new =  re.search(r"(.*).(fa|fna)$", input_fasta.split("/")[-1]).group(1) + ".fasta"
     name_base = bin_fasta_new.split(".fasta")[0]
     seq_origin = {}
     name_base = bin_fasta_new.split("/")[-1].split(".fasta")[0]
@@ -280,7 +281,7 @@ def preprocessing_bin(bin_fasta, tmp_dir, min_length):
     if bin_fasta.endswith(".fasta"):
         bin_fasta_new = bin_fasta.split("/")[-1]
     else:
-        bin_fasta_new = bin_fasta.split("/")[-1].split(".")[0] + ".fasta"
+        bin_fasta_new = re.search(r"(.*).(fa|fna)$", bin_fasta.split("/")[-1]).group(1) + ".fasta"
     name_base = bin_fasta_new.split(".fasta")[0]
     fasta_int_encoded_bin(bin_fasta, f"{tmp_dir}", min_length)
     int_encoded_to_array(f"{tmp_dir}/{name_base}/{name_base}.csv", f"{tmp_dir}/{name_base}")
