@@ -155,7 +155,7 @@ def main():
 
     # create a log file, overwrite if existed
     if input_bin:
-        logfile = "GutEuk_log.txt"
+        logfile = f"{fasta_filename}_GutEuk_log.txt"
     else:
         logfile = f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_log.txt"
     if os.path.exists(logfile):
@@ -380,9 +380,10 @@ def main():
 
         # prediction
         prediction_start = time.time()
-        utils.prediction_bin_parellel(tmp_dir, threads)
+        for bin_dir in glob.glob(f"{tmp_dir}/*"):
+            utils.prediction_bin(bin_dir)
         bin_level_predict_out = generate_final_output_for_bins(tmp_dir)
-        bin_level_predict_out.to_csv(f"{output_dir}/GutEuk_output.csv", index = None) 
+        bin_level_predict_out.to_csv(f"{output_dir}/{fasta_filename}_GutEuk_output.csv", index = None) 
 
     else:
         # unzip {input_fasta} if zipped
