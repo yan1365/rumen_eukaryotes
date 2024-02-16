@@ -271,35 +271,35 @@ def main():
             for stage1_out in glob.glob(f"{tmp_dir}/{Bin}/*stage1*.csv"):
                 stage1_df_list.append(pd.read_csv(stage1_out))
                 stage1_df = pd.concat(stage1_df_list)
-                if len(stage1_df) == 0:
-                    logging.info(f"{Bin} does not have any contig that is longer than the minimal contig length")
-                    stage1_predict.append("NA")
-                    stage1_confidence.append("NA")
-                else:
-                    eukaryotes_percent = len(stage1_df.query('predict == "eukaryotes"'))/len(stage1_df)
-                    prokaryotes_percent = 1 - eukaryotes_percent
-                    if eukaryotes_percent > prokaryotes_percent:
-                        if eukaryotes_percent > s1:
-                            stage1_predict.append("eukaryotes")
-                            stage1_confidence.append(eukaryotes_percent)
-                        else:
-                            stage1_predict.append("undetermined")
-                            stage1_confidence.append("NA")
-
-                    elif eukaryotes_percent == prokaryotes_percent:
+            if len(stage1_df) == 0:
+                logging.info(f"{Bin} does not have any contig that is longer than the minimal contig length")
+                stage1_predict.append("NA")
+                stage1_confidence.append("NA")
+            else:
+                eukaryotes_percent = len(stage1_df.query('predict == "eukaryotes"'))/len(stage1_df)
+                prokaryotes_percent = 1 - eukaryotes_percent
+                if eukaryotes_percent > prokaryotes_percent:
+                    if eukaryotes_percent > s1:
+                        stage1_predict.append("eukaryotes")
+                        stage1_confidence.append(eukaryotes_percent)
+                    else:
                         stage1_predict.append("undetermined")
                         stage1_confidence.append("NA")
 
+                elif eukaryotes_percent == prokaryotes_percent:
+                    stage1_predict.append("undetermined")
+                    stage1_confidence.append("NA")
+
+                else:
+                    if prokaryotes_percent > s1:
+                        stage1_predict.append("prokaryotes")
+                        stage1_confidence.append(prokaryotes_percent)
                     else:
-                        if prokaryotes_percent > s1:
-                            stage1_predict.append("prokaryotes")
-                            stage1_confidence.append(prokaryotes_percent)
-                        else:
-                            stage1_predict.append("undetermined")
-                            stage1_confidence.append("NA")
+                        stage1_predict.append("undetermined")
+                        stage1_confidence.append("NA")
 
 
-            if stage1_predict[-1] == "prokaryotes":
+            if stage1_predict[-1] != "eukaryotes":
                 stage2_predict.append("NA")
                 stage2_confidence.append("NA")
 
@@ -307,33 +307,33 @@ def main():
                 for stage2_out in glob.glob(f"{tmp_dir}/{Bin}/*stage2*.csv"):
                     stage2_df_list.append(pd.read_csv(stage2_out))
                     stage2_df = pd.concat(stage2_df_list)
-                    if len(stage2_df) == 0:
-                        stage2_predict.append("NA")
-                        stage2_confidence.append("NA")
-                    
-                    else:
-                        fungi_percent = len(stage2_df.query('predict == "fungi"'))/len(stage1_df)
-                        protozoa_percent = 1 - fungi_percent
+                if len(stage2_df) == 0:
+                    stage2_predict.append("NA")
+                    stage2_confidence.append("NA")
+                
+                else:
+                    fungi_percent = len(stage2_df.query('predict == "fungi"'))/len(stage1_df)
+                    protozoa_percent = 1 - fungi_percent
 
-                        if fungi_percent > protozoa_percent:
-                            if fungi_percent > s2:
-                                stage2_predict.append("fungi")
-                                stage2_confidence.append(fungi_percent)
-                            else:
-                                stage2_predict.append("undetermined")
-                                stage2_confidence.append("NA")
-
-                        elif fungi_percent == protozoa_percent:
+                    if fungi_percent > protozoa_percent:
+                        if fungi_percent > s2:
+                            stage2_predict.append("fungi")
+                            stage2_confidence.append(fungi_percent)
+                        else:
                             stage2_predict.append("undetermined")
                             stage2_confidence.append("NA")
 
+                    elif fungi_percent == protozoa_percent:
+                        stage2_predict.append("undetermined")
+                        stage2_confidence.append("NA")
+
+                    else:
+                        if protozoa_percent > s2:
+                            stage2_predict.append("protozoa")
+                            stage2_confidence.append(protozoa_percent)
                         else:
-                            if protozoa_percent > s2:
-                                stage2_predict.append("protozoa")
-                                stage2_confidence.append(protozoa_percent)
-                            else:
-                                stage2_predict.append("undetermined")
-                                stage2_confidence.append("NA")
+                            stage2_predict.append("undetermined")
+                            stage2_confidence.append("NA")
 
         bin_predict_out = pd.DataFrame.from_dict({"bin":bin_list, "stage1_prediction":stage1_predict, "stage1_confidence":stage1_confidence, "stage2_prediction":stage2_predict, "stage2_confidence":stage2_confidence })
         return bin_predict_out
@@ -413,7 +413,7 @@ def main():
 
     # clearn up, remove tmp dir
     try:
-        shutil.rmtree(f"{tmp_dir}") 
+        print("benc")#shutil.rmtree(f"{tmp_dir}") 
     except Exception as e:
         print(f"Unexpected error: {e}")
 
