@@ -413,7 +413,7 @@ def main():
 
     # clearn up, remove tmp dir
     try:
-        print("benc")#shutil.rmtree(f"{tmp_dir}") 
+        shutil.rmtree(f"{tmp_dir}") 
     except Exception as e:
         print(f"Unexpected error: {e}")
 
