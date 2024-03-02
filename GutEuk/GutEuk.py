@@ -58,8 +58,8 @@ parser.add_argument(
     "-s1",
     "--stage1_confidence",
     metavar="stage1 confidence level",
-    help='''Confidence level for stage1 classification (when -b/--bin is provided): 
-    e.g. -s1 0.6: only give predictions when 60 percents of the bin is classified as the same category.
+    help='''Confidence level for stage1 classification: 
+    e.g. -s1 0.6: only give predictions when 60 percents of the contigs/bins are classified as the same category.
     Default: 0.5.
     ''',
     required=False,
@@ -72,13 +72,13 @@ parser.add_argument(
     "-s2",
     "--stage2_confidence",
     metavar="stage2 confidence level",
-    help='''Confidence level for stage2 classification (when -b/--bin is provided): 
-    e.g. -s2 0.6: only give predictions when 60 percents of the bin is classified as the same category.
-    Default: 0.8.
+    help='''Confidence level for stage2 classification: 
+    e.g. -s2 0.6: only give predictions when 60 percents of the contigs/bins are classified as the same category.
+    Default: 0.5.
     ''',
     required=False,
     type=float,
-    default=0.8
+    default=0.5
 )
 
 
@@ -212,48 +212,65 @@ def main():
         stage2_res = pd.merge(seqorigin_df, stage2_df, on = "seq")
 
         stage1_final_prediction = {}
+        stage1_confidence_dic = {}
         for f in set(stage1_res.origin):
             df = stage1_res.query('origin == @f')
             # if the input sequence unfragmented (seq length < 10,000 bp)
             if len(df) == 1:
                 prediction = list(df.predict)[0]
                 stage1_final_prediction[f] = prediction
+                stage1_confidence_dic[f] = 1
             # if the input sequence fragmented, the final prediction for the original sequence determined based on the majority rule
             else:
                 prediction = list(df.predict)
                 prediction_pro = prediction.count("prokaryotes")
-                prediction_euk = prediction.count("eukaryotes") 
-                if prediction_pro > prediction_euk:
-                    stage1_final_prediction[f] = "prokaryotes"
-                elif prediction_pro < prediction_euk:
-                    stage1_final_prediction[f] = "eukaryotes"
+                prediction_euk = prediction.count("eukaryotes")
+                stage1_confidence = max(prediction_euk,prediction_pro) / (prediction_pro + prediction_euk)
+                stage1_confidence_dic[f] = stage1_confidence
+                if stage1_confidence > s1: 
+                    if prediction_pro > prediction_euk:
+                        stage1_final_prediction[f] = "prokaryotes"
+                    else:
+                        stage1_final_prediction[f] = "eukaryotes"
                 else:
                     stage1_final_prediction[f] = "undetermined"
 
         stage2_final_prediction = {}
+        stage2_confidence_dic = {}
         for f in set(stage2_res.origin):
             df = stage2_res.query('origin == @f')
             if len(df) == 1:
                 prediction = list(df.predict)[0]
                 stage2_final_prediction[f] = prediction
+                stage2_confidence_dic[f] = 1
             else:
                 prediction = list(df.predict)
                 prediction_fungi = prediction.count("fungi")
                 prediction_protozoa = prediction.count("protozoa") 
-                if prediction_fungi > prediction_protozoa:
-                    stage2_final_prediction[f] = "fungi"
-                elif prediction_fungi < prediction_protozoa:
-                    stage2_final_prediction[f] = "protozoa"
+                stage2_confidence = max(prediction_protozoa,prediction_fungi) / (prediction_protozoa + prediction_fungi)
+                stage2_confidence_dic[f] = stage2_confidence
+                if stage2_confidence > s2:
+                    if prediction_fungi > prediction_protozoa:
+                        stage2_final_prediction[f] = "fungi"
+                    else:
+                        stage2_final_prediction[f] = "protozoa"                       
                 else:
                     stage2_final_prediction[f] = "undetermined"
+                    
         
         stage1_final_prediction_df = pd.DataFrame.from_dict(stage1_final_prediction, orient = "index").rename(columns = {0:"stage1_prediction"})
         stage2_final_prediction_df = pd.DataFrame.from_dict(stage2_final_prediction, orient = "index").rename(columns = {0:"stage2_prediction"})
-        final_output = pd.merge(stage1_final_prediction_df, stage2_final_prediction_df, left_index = True, right_index = True, how="left")
+        stage1_confidence_df = pd.DataFrame.from_dict(stage1_confidence_dic, orient = "index").rename(columns = {0:"stage1_confidence"})
+        stage2_confidence_df = pd.DataFrame.from_dict(stage2_confidence_dic, orient = "index").rename(columns = {0:"stage2_confidence"})
+        final_output_tmp1 = pd.merge(stage1_final_prediction_df, stage2_final_prediction_df, left_index = True, right_index = True, how="left")
+        final_output_tmp2 = pd.merge(final_output_tmp1, stage1_confidence_df, left_index = True, right_index = True, how="left")
+        final_output = pd.merge(final_output_tmp2, stage2_confidence_df, left_index = True, right_index = True, how="left")
         final_output.reset_index(names = "sequence_id", inplace = True)
         final_output.stage2_prediction = final_output.stage2_prediction.fillna("prokaryotes")
         final_output.loc[list(final_output.query("stage1_prediction == 'prokaryotes'").index), "stage2_prediction"] = "prokaryotes"
+        final_output.loc[list(final_output.query("stage1_prediction == 'prokaryotes'").index), "stage2_confidence"] = 0
         final_output.loc[list(final_output.query("stage1_prediction == 'undetermined'").index), "stage2_prediction"] = "undetermined"
+        final_output.loc[list(final_output.query("stage1_prediction == 'undetermined'").index), "stage2_confidence"] = 0
         return final_output
 
     def generate_final_output_for_bins(tmp_dir):
