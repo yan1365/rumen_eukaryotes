@@ -414,13 +414,23 @@ def main():
         else:
             copy = f"cp {input_fasta} {tmp_dir}"
 
+        seqlength = {}
+        records = SeqIO.parse(input_fasta, "fasta")
+        for record in records:
+            seqid = str(record.id)
+            seqlen = len(record.seq)
+            seqlength[seqid] = seqlen
+
+        seqlength_df = pd.DataFrame.from_dict(seqlength, orient = "index").reset_index(names = "sequence_id").rename(columns = {0:"contig_length"})
+
         preprocessing(input_fasta, tmp_dir, threads, min_length)
         preprocessing_end = time.time()
         logging.info(f"Preprocessing finished in {preprocessing_end - preprocessing_start:.2f} secs")
         
         prediction_start = time.time()
         prediction(tmp_dir)
-        final_output = generate_final_output(tmp_dir)
+        final_output_tmp = generate_final_output(tmp_dir)
+        final_output = pd.merge(final_output_tmp, seqlength_df, on = "sequence_id")
         final_output.to_csv(f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_output.csv", index = None)
         if to_fasta:
             write_to_fasta(final_output)
