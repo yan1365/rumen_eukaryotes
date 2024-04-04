@@ -59,7 +59,7 @@ parser.add_argument(
     "--stage1_confidence",
     metavar="stage1 confidence level",
     help='''Confidence level for stage1 classification: 
-    e.g. -s1 0.6: only give predictions when 60 percents of the contigs/bins are classified as the same category.
+    e.g. -s1 0.6: only give predictions when 60 percents of the input contig/bin fragments are classified as the same category.
     Default: 0.5.
     ''',
     required=False,
@@ -73,7 +73,7 @@ parser.add_argument(
     "--stage2_confidence",
     metavar="stage2 confidence level",
     help='''Confidence level for stage2 classification: 
-    e.g. -s2 0.6: only give predictions when 60 percents of the contigs/bins are classified as the same category.
+    e.g. -s2 0.6: only give predictions when 60 percents of the input contig/bin fragments are classified as the same category.
     Default: 0.5.
     ''',
     required=False,
