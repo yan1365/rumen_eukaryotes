@@ -430,6 +430,8 @@ def main():
         prediction_start = time.time()
         prediction(tmp_dir)
         final_output_tmp = generate_final_output(tmp_dir)
+        final_output_tmp['sequence_id'] = final_output_tmp['sequence_id'].astype(str)
+        seqlength_df['sequence_id'] = seqlength_df['sequence_id'].astype(str)
         final_output = pd.merge(final_output_tmp, seqlength_df, on = "sequence_id")
         final_output.to_csv(f"{output_dir}/{fasta_filename_trailing_removed}_GutEuk_output.csv", index = None)
         if to_fasta:
