@@ -1,0 +1,63 @@
+---
+title: "05_protein_db_annotation"
+author: "Ming Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries
+```{r}
+library(tidyverse)
+library(ggbreak)
+library(RColorBrewer)
+```
+
+# Load data
+```{r}
+protozoa_cazy <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/protozoa_gh_prevalence.csv")
+protozoa_merops_diversity <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/protozoa_secretory_merops_family_diversity_renamed.csv")
+protozoa_merops_prevalence <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/protozoa_secretory_merops_family_prevalence.csv")
+```
+
+# prevalent CAZy
+```{r}
+protozoa_cazy$CAZy <- factor(protozoa_cazy$CAZy, levels = protozoa_cazy$CAZy)
+protozoa_cazy %>% head(n = 15) %>%  ggplot(aes(x = CAZy, y = seq)) + geom_col() + 
+   scale_y_break(c(400, 950), scales = 0.4, ticklabels=c(1000, 1200), space=.01) + 
+  scale_y_break(c(1300, 2600), scales = 0.4, ticklabels=c(2600, 2700), space=.01) +
+   theme_minimal() +  labs(y = "number of protein clusters") + 
+  #theme(axis.text.x = element_text(angle = 90)) +
+  theme(text = element_text(size=7)) +
+  theme(legend.margin = margin(0, 0, 0, 0)) +
+  theme(axis.title.x = element_text(vjust = 7))
+
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/protozoa_cazy_prevalence.svg", width = 4.5, height = 2, units = "in")
+```
+
+# prevalent MEROPS
+```{r}
+protozoa_merops_prevalence$merops_family <- factor(protozoa_merops_prevalence$merops_family, levels = protozoa_merops_prevalence$merops_family)
+protozoa_merops_prevalence %>% head(n = 15) %>%  ggplot(aes(x = merops_family, y = occurrence)) + geom_col() +
+  labs(x = "MEROPS family", y = "number of protein clusters") + theme_minimal() + 
+  theme(text = element_text(size=7)) +
+  theme(legend.margin = margin(0, 0, 0, 0)) +
+  theme(axis.title.x = element_text(vjust = 1)) 
+
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/protozoa_secretory_merops_prevalence.svg", width = 4.5, height = 1.8, units = "in")
+
+```
+# MEROPS catalytic site
+```{r}
+protozoa_merops_diversity %>% ggplot(aes(fill = merops_cat, y = merops_family, x = "")) + geom_bar(stat="identity") +
+  coord_polar("y", start=0) + scale_fill_brewer(palette = "Paired") + theme_void() +
+  theme(legend.title =  element_blank()) + theme(text = element_text(size=8)) + 
+  theme(legend.position = "bottom") +
+  guides(fill = guide_legend(nrow = 5, byrow = TRUE)) +
+  theme(legend.key.size = unit(0.1, 'cm'))
+
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/protozoa_secretory_merops_diversity.svg", width = 2, height = 4, units = "in")
+```
+

@@ -4,3 +4,5 @@
 *.Rproj
 visualization_and_stats/.Rproj.user/
 .Rproj.user
+case_study/backup/
+case_study/log/

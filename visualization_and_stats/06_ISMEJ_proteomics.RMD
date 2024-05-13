@@ -1,0 +1,57 @@
+---
+title: "ISMEJ_proteomics"
+author: "Ming Yan"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+cow_fungi <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/cow_fungi_proteomics.csv")
+cow_protozoa <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/cow_protozoa_proteomics.csv")
+goat_fungi <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/goat_fungi_proteomics.csv")
+goat_protozoa <- read_csv("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/goat_protozoa_proteomics.csv")
+```
+
+# fungi results
+```{r}
+cow_fungi_df = cow_fungi %>% pivot_longer(cols = c(original, db), names_to = "db", values_to = "protein") %>% mutate(db = factor(db, levels = c("original", "db")) )
+goat_fungi_df = goat_fungi %>% pivot_longer(cols = c(original, db), names_to = "db", values_to = "protein") %>% mutate(db = factor(db, levels = c("original", "db")) )
+cow_fungi_df$"animal" = "cow"
+goat_fungi_df$"animal" = "goat"
+fungi_df = rbind(cow_fungi_df, goat_fungi_df)
+
+
+fungi_proteomics <- fungi_df %>% 
+  ggplot(aes(x = db, y = protein)) + geom_point() + geom_line(aes(group = Sample)) +
+  facet_wrap(vars(animal)) + labs(x = "", y = "Identified fungi proteins") +
+  theme(axis.text.x = element_blank())+
+  theme(text = element_text(size=9))
+
+fungi_proteomics
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/fungi_proteomics.svg", width = 3, height = 2.5)
+
+```
+
+# protozoa results
+```{r}
+cow_protozoa_df = cow_protozoa %>% pivot_longer(cols = c(original, db), names_to = "db", values_to = "protein") %>% mutate(db = factor(db, levels = c("original", "db")) )
+goat_protozoa_df = goat_protozoa %>% pivot_longer(cols = c(original, db), names_to = "db", values_to = "protein") %>% mutate(db = factor(db, levels = c("original", "db")) )
+cow_protozoa_df$"animal" = "cow"
+goat_protozoa_df$"animal" = "goat"
+protozoa_df = rbind(cow_protozoa_df, goat_protozoa_df)
+
+
+protozoa_proteomics <- protozoa_df %>% 
+  ggplot(aes(x = db, y = protein)) + geom_point() + geom_line(aes(group = Sample)) +
+  facet_wrap(vars(animal)) + labs(x = "", y = "Identified protozoa proteins") +
+  theme(axis.text.x = element_blank()) +
+  theme(text = element_text(size=9))
+
+protozoa_proteomics
+ggsave("/fs/ess/PAS0439/MING/cilates_fungi_classifier/stats_visualization/protozoa_proteomics.svg", width = 3, height = 2.5)
+
+```
