@@ -1,0 +1,4 @@
+bin,stage1_prediction,stage1_confidence,stage2_prediction,stage2_confidence
+bin2,eukaryotes,1.0,protozoa,1.0
+bin3,prokaryotes,1.0,NA,NA
+bin1,eukaryotes,1.0,protozoa,1.0
