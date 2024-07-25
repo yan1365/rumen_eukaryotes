@@ -43,11 +43,11 @@ Otherwise, provide full path when running the program.
 ## Usage 
 ### Basic usage
 ```bash
-GutEuk.py -i input.fasta -o output_dir -m 3000 -t 4 --to_fasta -s1 0.6 -s2 0.6 # contigs file as input
+python GutEuk.py -i input.fasta -o output_dir -m 3000 -t 4 --to_fasta -s1 0.6 -s2 0.6 # contigs file as input
 ```
 or
 ```bash
-GutEuk.py -b -i input_dir -o output_dir -m 3000 -t 4  -s1 0.6 -s2 0.6 # bins as input
+python GutEuk.py -b -i input_dir -o output_dir -m 3000 -t 4  -s1 0.6 -s2 0.6 # bins as input
 ```
 
 ### Program options
