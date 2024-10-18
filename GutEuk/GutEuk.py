@@ -256,21 +256,29 @@ def main():
                         stage2_final_prediction[f] = "protozoa"                       
                 else:
                     stage2_final_prediction[f] = "undetermined"
-                    
-        
-        stage1_final_prediction_df = pd.DataFrame.from_dict(stage1_final_prediction, orient = "index").rename(columns = {0:"stage1_prediction"})
-        stage2_final_prediction_df = pd.DataFrame.from_dict(stage2_final_prediction, orient = "index").rename(columns = {0:"stage2_prediction"})
+        stage1_final_prediction_df = pd.DataFrame.from_dict(stage1_final_prediction, orient = "index").rename(columns = {0:"stage1_prediction"})           
         stage1_confidence_df = pd.DataFrame.from_dict(stage1_confidence_dic, orient = "index").rename(columns = {0:"stage1_confidence"})
-        stage2_confidence_df = pd.DataFrame.from_dict(stage2_confidence_dic, orient = "index").rename(columns = {0:"stage2_confidence"})
-        final_output_tmp1 = pd.merge(stage1_final_prediction_df, stage2_final_prediction_df, left_index = True, right_index = True, how="left")
-        final_output_tmp2 = pd.merge(final_output_tmp1, stage1_confidence_df, left_index = True, right_index = True, how="left")
-        final_output = pd.merge(final_output_tmp2, stage2_confidence_df, left_index = True, right_index = True, how="left")
-        final_output.reset_index(names = "sequence_id", inplace = True)
-        final_output.stage2_prediction = final_output.stage2_prediction.fillna("prokaryotes")
-        final_output.loc[list(final_output.query("stage1_prediction == 'prokaryotes'").index), "stage2_prediction"] = "prokaryotes"
-        final_output.loc[list(final_output.query("stage1_prediction == 'prokaryotes'").index), "stage2_confidence"] = 0
-        final_output.loc[list(final_output.query("stage1_prediction == 'undetermined'").index), "stage2_prediction"] = "undetermined"
-        final_output.loc[list(final_output.query("stage1_prediction == 'undetermined'").index), "stage2_confidence"] = 0
+            
+        ## extreme case where all of the sequence fragments are of prokaryotic origins
+        if len(stage2_final_prediction) == 0:
+            final_output = pd.merge(stage1_final_prediction_df, stage1_confidence_df, left_index = True, right_index = True, how="left")
+            final_output.loc[:,"stage2_prediction"] = "prokaryotes"
+            final_output.loc[:,"stage2_confidence"] = 0 
+            final_output = final_output[["stage1_prediction", "stage2_prediction", "stage1_confidence", "stage2_confidence"]]
+            final_output.reset_index(names = "sequence_id", inplace = True)
+        ## other cases
+        else:
+            stage2_final_prediction_df = pd.DataFrame.from_dict(stage2_final_prediction, orient = "index").rename(columns = {0:"stage2_prediction"})
+            stage2_confidence_df = pd.DataFrame.from_dict(stage2_confidence_dic, orient = "index").rename(columns = {0:"stage2_confidence"})
+            final_output_tmp1 = pd.merge(stage1_final_prediction_df, stage2_final_prediction_df, left_index = True, right_index = True, how="left")
+            final_output_tmp2 = pd.merge(final_output_tmp1, stage1_confidence_df, left_index = True, right_index = True, how="left")
+            final_output = pd.merge(final_output_tmp2, stage2_confidence_df, left_index = True, right_index = True, how="left")
+            final_output.reset_index(names = "sequence_id", inplace = True)
+            final_output.stage2_prediction = final_output.stage2_prediction.fillna("prokaryotes")
+            final_output.loc[list(final_output.query("stage1_prediction == 'prokaryotes'").index), "stage2_prediction"] = "prokaryotes"
+            final_output.loc[list(final_output.query("stage1_prediction == 'prokaryotes'").index), "stage2_confidence"] = 0
+            final_output.loc[list(final_output.query("stage1_prediction == 'undetermined'").index), "stage2_prediction"] = "undetermined"
+            final_output.loc[list(final_output.query("stage1_prediction == 'undetermined'").index), "stage2_confidence"] = 0
         return final_output
 
     def generate_final_output_for_bins(tmp_dir):
